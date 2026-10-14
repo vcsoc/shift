@@ -1,0 +1,14 @@
+CREATE TABLE IF NOT EXISTS migrations(version INTEGER PRIMARY KEY);
+CREATE TABLE scenarios(id TEXT PRIMARY KEY, name TEXT NOT NULL, description TEXT NOT NULL, assumptions TEXT NOT NULL, is_default INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE categories(id TEXT PRIMARY KEY,name TEXT NOT NULL UNIQUE,parent_id TEXT REFERENCES categories(id));
+CREATE TABLE events(id TEXT PRIMARY KEY,title TEXT NOT NULL,kind TEXT NOT NULL CHECK(kind IN ('verified_history','approximate_history','observed_current','future_forecast')),date_precision TEXT NOT NULL,historical_date_start TEXT,historical_date_end TEXT,category_id TEXT NOT NULL REFERENCES categories(id),summary TEXT NOT NULL,impact TEXT NOT NULL DEFAULT '',technology_type TEXT NOT NULL,status TEXT NOT NULL CHECK(status IN ('draft','published','archived')),created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,deleted_at TEXT);
+CREATE TABLE event_forecasts(event_id TEXT REFERENCES events(id) ON DELETE CASCADE,scenario_id TEXT REFERENCES scenarios(id),estimated_start TEXT,estimated_end TEXT,description TEXT NOT NULL,rationale TEXT NOT NULL,assumptions TEXT NOT NULL,confidence TEXT NOT NULL,PRIMARY KEY(event_id,scenario_id));
+CREATE TABLE event_sources(id TEXT PRIMARY KEY,event_id TEXT NOT NULL REFERENCES events(id) ON DELETE CASCADE,publisher TEXT NOT NULL,title TEXT NOT NULL,url TEXT NOT NULL,accessed_at TEXT NOT NULL);
+CREATE TABLE curve_points(id TEXT PRIMARY KEY,scenario_id TEXT REFERENCES scenarios(id),point_date TEXT NOT NULL,technology_index REAL NOT NULL CHECK(technology_index BETWEEN 0 AND 100),human_effort_index REAL NOT NULL CHECK(human_effort_index BETWEEN 0 AND 100),rationale TEXT NOT NULL,created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,CHECK((scenario_id IS NULL AND point_date <= '2026-10-13') OR (scenario_id IS NOT NULL AND point_date > '2026-10-13')));
+CREATE UNIQUE INDEX shared_point_date ON curve_points(point_date) WHERE scenario_id IS NULL;
+CREATE UNIQUE INDEX scenario_point_date ON curve_points(scenario_id,point_date) WHERE scenario_id IS NOT NULL;
+CREATE TABLE event_links(source_event_id TEXT REFERENCES events(id) ON DELETE CASCADE,target_event_id TEXT REFERENCES events(id) ON DELETE CASCADE,relationship TEXT NOT NULL,explanation TEXT NOT NULL,PRIMARY KEY(source_event_id,target_event_id,relationship));
+CREATE TABLE audit_log(id INTEGER PRIMARY KEY,entity_type TEXT NOT NULL,entity_id TEXT NOT NULL,action TEXT NOT NULL,changed_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,change_json TEXT NOT NULL);
+CREATE INDEX event_status_date ON events(status,historical_date_start);
+CREATE INDEX forecast_date ON event_forecasts(scenario_id,estimated_start);
+INSERT INTO migrations(version) VALUES(1);

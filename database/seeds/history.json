@@ -1,0 +1,538 @@
+[
+  {
+    "title": "Elektro at the World's Fair",
+    "date": "1939-01-01",
+    "precision": "year",
+    "url": "https://www.computerhistory.org/timeline/1939/",
+    "publisher": "Computer History Museum",
+    "summary": "A voice-command demonstration robot showed the public a mechanical imitation of human actions, using relays and prerecorded speech."
+  },
+  {
+    "title": "Konrad Zuse finishes the Z3 Computer",
+    "date": "1941-01-01",
+    "precision": "year",
+    "url": "https://www.computerhistory.org/timeline/1941/",
+    "publisher": "Computer History Museum",
+    "summary": "Zuse completed a relay-based programmable computer, bringing automated binary arithmetic to engineering calculations."
+  },
+  {
+    "title": "Public unveiling of ENIAC",
+    "date": "1946-01-01",
+    "precision": "year",
+    "url": "https://www.computerhistory.org/timeline/1946/",
+    "publisher": "Computer History Museum",
+    "summary": "The public unveiling of ENIAC demonstrated the potential of electronic computing for large calculation workloads."
+  },
+  {
+    "title": "Manchester Mark I Williams-Kilburn tube",
+    "date": "1947-01-01",
+    "precision": "year",
+    "url": "https://www.computerhistory.org/timeline/1947/",
+    "publisher": "Computer History Museum",
+    "summary": "Williams and Kilburn developed electronic memory using a cathode-ray tube, helping make stored-program computing practical."
+  },
+  {
+    "title": "Cybernetics",
+    "date": "1948-01-01",
+    "precision": "year",
+    "url": "https://www.computerhistory.org/timeline/1948/",
+    "publisher": "Computer History Museum",
+    "summary": "Wiener connected feedback, communication and control in a framework that influenced automation and artificial intelligence research."
+  },
+  {
+    "title": "The Mathematical Theory of Communication",
+    "date": "1948-01-01",
+    "precision": "year",
+    "url": "https://www.computerhistory.org/timeline/1948/",
+    "publisher": "Computer History Museum",
+    "summary": "Shannon formalized information and communication limits, providing foundational tools for digital communication systems."
+  },
+  {
+    "title": "First Computer Program to Run on a Computer",
+    "date": "1948-06-21",
+    "precision": "day",
+    "url": "https://www.computerhistory.org/timeline/1948/",
+    "publisher": "Computer History Museum",
+    "summary": "The Manchester Baby ran a stored program, demonstrating that instructions could reside in electronic memory alongside data."
+  },
+  {
+    "title": "First Univac 1 delivered to US Census Bureau",
+    "date": "1951-01-01",
+    "precision": "year",
+    "url": "https://www.computerhistory.org/timeline/1951/",
+    "publisher": "Computer History Museum",
+    "summary": "UNIVAC reached the US Census Bureau, illustrating the transition from experimental computation to institutional data processing."
+  },
+  {
+    "title": "J. Lyons & Company introduce LEO-1",
+    "date": "1951-01-01",
+    "precision": "year",
+    "url": "https://www.computerhistory.org/timeline/1951/",
+    "publisher": "Computer History Museum",
+    "summary": "LEO applied electronic computing to business scheduling, connecting digital calculations to everyday operations."
+  },
+  {
+    "title": "Grace Hopper completes A-0",
+    "date": "1952-01-01",
+    "precision": "year",
+    "url": "https://www.computerhistory.org/timeline/1952/",
+    "publisher": "Computer History Museum",
+    "summary": "Hopper developed A-0, an early step toward translating higher-level instructions into computer operations."
+  },
+  {
+    "title": "Grimsdale and Webb build early transistorized computer",
+    "date": "1953-11-16",
+    "precision": "day",
+    "url": "https://www.computerhistory.org/timeline/1953/",
+    "publisher": "Computer History Museum",
+    "summary": "A prototype transistorized computer demonstrated an alternative to vacuum-tube computing hardware."
+  },
+  {
+    "title": "Whirlwind core memory",
+    "date": "1953-01-01",
+    "precision": "year",
+    "url": "https://www.computerhistory.org/timeline/1953/",
+    "publisher": "Computer History Museum",
+    "summary": "MIT installed magnetic core memory in Whirlwind, advancing reliable electronic data storage."
+  },
+  {
+    "title": "IBM 650 magnetic drum calculator introduced",
+    "date": "1954-01-01",
+    "precision": "year",
+    "url": "https://www.computerhistory.org/timeline/1954/",
+    "publisher": "Computer History Museum",
+    "summary": "IBM introduced a widely adopted drum-memory computer that helped institutions and universities use electronic data processing."
+  },
+  {
+    "title": "RAMAC",
+    "date": "1956-01-01",
+    "precision": "year",
+    "url": "https://www.computerhistory.org/timeline/1956/",
+    "publisher": "Computer History Museum",
+    "summary": "RAMAC introduced commercial magnetic disk storage, making data directly accessible rather than requiring sequential retrieval."
+  },
+  {
+    "title": "FORTRAN",
+    "date": "1957-01-01",
+    "precision": "year",
+    "url": "https://www.computerhistory.org/timeline/1957/",
+    "publisher": "Computer History Museum",
+    "summary": "FORTRAN made scientific programming more accessible by translating symbolic statements into efficient machine instructions."
+  },
+  {
+    "title": "First computer scanned image on SEAC",
+    "date": "1957-01-01",
+    "precision": "year",
+    "url": "https://www.computerhistory.org/timeline/1957/",
+    "publisher": "Computer History Museum",
+    "summary": "A SEAC team digitized an image, opening a path toward computer-based image processing."
+  },
+  {
+    "title": "LISP",
+    "date": "1958-01-01",
+    "precision": "year",
+    "url": "https://www.computerhistory.org/timeline/1958/",
+    "publisher": "Computer History Museum",
+    "summary": "LISP represented programs and data as lists, providing a language suited to symbolic artificial intelligence research."
+  },
+  {
+    "title": "SAGE system goes online",
+    "date": "1958-01-01",
+    "precision": "year",
+    "url": "https://www.computerhistory.org/timeline/1958/",
+    "publisher": "Computer History Museum",
+    "summary": "SAGE connected computing with radar and operational coordination, showing the possibilities and demands of large real-time systems."
+  },
+  {
+    "title": "Compatible Time-Sharing System (CTSS) is Demonstrated",
+    "date": "1961-01-01",
+    "precision": "year",
+    "url": "https://www.computerhistory.org/timeline/1961/",
+    "publisher": "Computer History Museum",
+    "summary": "CTSS demonstrated interactive shared computer use, allowing users to work through terminals instead of only batch jobs."
+  },
+  {
+    "title": "UNIMATE",
+    "date": "1961-01-01",
+    "precision": "year",
+    "url": "https://www.computerhistory.org/timeline/1961/",
+    "publisher": "Computer History Museum",
+    "summary": "UNIMATE brought programmable industrial robotics into factory work, changing the relationship between machinery and production labour."
+  },
+  {
+    "title": "Spacewar! debuts",
+    "date": "1962-01-01",
+    "precision": "year",
+    "url": "https://www.computerhistory.org/timeline/1962/",
+    "publisher": "Computer History Museum",
+    "summary": "Spacewar! demonstrated interactive computer entertainment and real-time graphics on a research computer."
+  },
+  {
+    "title": "ASCII",
+    "date": "1963-01-01",
+    "precision": "year",
+    "url": "https://www.computerhistory.org/timeline/1963/",
+    "publisher": "Computer History Museum",
+    "summary": "ASCII standardized character encoding, easing exchange of text between different computing systems."
+  },
+  {
+    "title": "Ivan Sutherland publishes Sketchpad",
+    "date": "1963-01-01",
+    "precision": "year",
+    "url": "https://www.computerhistory.org/timeline/1963/",
+    "publisher": "Computer History Museum",
+    "summary": "Sketchpad demonstrated interactive graphical design, influencing computer-aided design and human-computer interaction."
+  },
+  {
+    "title": "IBM announces System/360",
+    "date": "1964-04-07",
+    "precision": "day",
+    "url": "https://www.computerhistory.org/timeline/1964/",
+    "publisher": "Computer History Museum",
+    "summary": "System/360 offered a compatible computer family, allowing institutions to expand computing while retaining software investments."
+  },
+  {
+    "title": "Thomas Kurtz and John Kemeny create BASIC",
+    "date": "1964-01-01",
+    "precision": "year",
+    "url": "https://www.computerhistory.org/timeline/1964/",
+    "publisher": "Computer History Museum",
+    "summary": "BASIC was developed to broaden access to programming, particularly in education."
+  },
+  {
+    "title": "DENDRAL artificial intelligence program",
+    "date": "1965-01-01",
+    "precision": "year",
+    "url": "https://www.computerhistory.org/timeline/1965/",
+    "publisher": "Computer History Museum",
+    "summary": "DENDRAL explored knowledge-based problem solving in chemistry, demonstrating a specialized approach to artificial intelligence."
+  },
+  {
+    "title": "The Mother of All Demos",
+    "date": "1968-01-01",
+    "precision": "year",
+    "url": "https://www.computerhistory.org/timeline/1968/",
+    "publisher": "Computer History Museum",
+    "summary": "Engelbart demonstrated interactive tools including the mouse and collaborative document work, illustrating computing as human augmentation."
+  },
+  {
+    "title": "Hooking up \u2013\u00a0networks come online",
+    "date": "1969-10-01",
+    "precision": "month",
+    "url": "https://www.computerhistory.org/timeline/1969/",
+    "publisher": "Computer History Museum",
+    "summary": "Early packet networks connected computers, laying groundwork for shared digital infrastructure."
+  },
+  {
+    "title": "Kenneth Thompson and Dennis Ritchie develop UNIX",
+    "date": "1969-01-01",
+    "precision": "year",
+    "url": "https://www.computerhistory.org/timeline/1969/",
+    "publisher": "Computer History Museum",
+    "summary": "Thompson and Ritchie began UNIX, a system whose design influenced decades of software and operating-system development."
+  },
+  {
+    "title": "Intel introduces the first microprocessor",
+    "date": "1971-01-01",
+    "precision": "year",
+    "url": "https://www.computerhistory.org/timeline/1971/",
+    "publisher": "Computer History Museum",
+    "summary": "Intel introduced a microprocessor, concentrating processing functions on a chip and expanding opportunities for embedded computation."
+  },
+  {
+    "title": "Networked Email as an Early \u201cKiller App\u201d",
+    "date": "1971-01-01",
+    "precision": "year",
+    "url": "https://www.computerhistory.org/timeline/1971/",
+    "publisher": "Computer History Museum",
+    "summary": "Network email provided a practical communication use for connected computers."
+  },
+  {
+    "title": "C programming language is released",
+    "date": "1972-01-01",
+    "precision": "year",
+    "url": "https://www.computerhistory.org/timeline/1972/",
+    "publisher": "Computer History Museum",
+    "summary": "C provided a systems programming language that would become central to operating systems and software infrastructure."
+  },
+  {
+    "title": "Linking the Office: Ethernet and Local Networks",
+    "date": "1973-01-01",
+    "precision": "year",
+    "url": "https://www.computerhistory.org/timeline/1973/",
+    "publisher": "Computer History Museum",
+    "summary": "Ethernet research connected computers locally, helping move offices toward shared network resources."
+  },
+  {
+    "title": "MITS Altair 8800 kit appears in Popular Electronics",
+    "date": "1975-01-01",
+    "precision": "month",
+    "url": "https://www.computerhistory.org/timeline/1975/",
+    "publisher": "Computer History Museum",
+    "summary": "The Altair kit made microcomputer experimentation available to a growing community of enthusiasts."
+  },
+  {
+    "title": "Steve Wozniak completes the Apple-1",
+    "date": "1976-01-01",
+    "precision": "year",
+    "url": "https://www.computerhistory.org/timeline/1976/",
+    "publisher": "Computer History Museum",
+    "summary": "The Apple-1 connected microcomputer design with a nascent personal-computing market."
+  },
+  {
+    "title": "Apple II introduced",
+    "date": "1977-01-01",
+    "precision": "year",
+    "url": "https://www.computerhistory.org/timeline/1977/",
+    "publisher": "Computer History Museum",
+    "summary": "The Apple II helped bring computing into homes, schools and small businesses."
+  },
+  {
+    "title": "Visicalc is developed",
+    "date": "1979-01-01",
+    "precision": "year",
+    "url": "https://www.computerhistory.org/timeline/1979/",
+    "publisher": "Computer History Museum",
+    "summary": "VisiCalc demonstrated personal-computer spreadsheet work, making digital tools useful for business planning."
+  },
+  {
+    "title": "IBM introduces its Personal Computer (PC)",
+    "date": "1981-01-01",
+    "precision": "year",
+    "url": "https://www.computerhistory.org/timeline/1981/",
+    "publisher": "Computer History Museum",
+    "summary": "IBM introduced its personal computer, contributing to a broad ecosystem of compatible hardware and software."
+  },
+  {
+    "title": "Richard Stallman develops GNU",
+    "date": "1983-01-01",
+    "precision": "year",
+    "url": "https://www.computerhistory.org/timeline/1983/",
+    "publisher": "Computer History Museum",
+    "summary": "The GNU project sought a freely usable operating-system environment, influencing collaborative software development."
+  },
+  {
+    "title": "Apple Computer launches the Macintosh",
+    "date": "1984-01-01",
+    "precision": "year",
+    "url": "https://www.computerhistory.org/timeline/1984/",
+    "publisher": "Computer History Museum",
+    "summary": "The Macintosh brought a graphical interface and mouse interaction to a wider personal-computing audience."
+  },
+  {
+    "title": "The \"WorldWideWeb\" is born",
+    "date": "1990-01-01",
+    "precision": "year",
+    "url": "https://www.computerhistory.org/timeline/1990/",
+    "publisher": "Computer History Museum",
+    "summary": "Berners-Lee developed the WorldWideWeb browser and server, joining hypertext documents with network access."
+  },
+  {
+    "title": "Linus Torvalds releases the Linux kernel",
+    "date": "1991-01-01",
+    "precision": "year",
+    "url": "https://www.computerhistory.org/timeline/1991/",
+    "publisher": "Computer History Museum",
+    "summary": "Torvalds released the Linux kernel, enabling an expanding ecosystem of openly developed computing infrastructure."
+  },
+  {
+    "title": "Mosaic popularizes the Web",
+    "date": "1993-01-01",
+    "precision": "year",
+    "url": "https://www.computerhistory.org/timeline/1993/",
+    "publisher": "Computer History Museum",
+    "summary": "Mosaic helped make the Web easier to navigate through a graphical browser."
+  },
+  {
+    "title": "JavaScript is developed",
+    "date": "1995-01-01",
+    "precision": "year",
+    "url": "https://www.computerhistory.org/timeline/1995/",
+    "publisher": "Computer History Museum",
+    "summary": "JavaScript added programmable behaviour to browser pages, changing the Web from documents toward interactive applications."
+  },
+  {
+    "title": "Deep Blue defeats Garry Kasparov",
+    "date": "1997-05-11",
+    "precision": "day",
+    "url": "https://www.computerhistory.org/timeline/1997/",
+    "publisher": "Computer History Museum",
+    "summary": "Deep Blue defeated Kasparov in a chess match, demonstrating specialized search and evaluation rather than general human-level intelligence."
+  },
+  {
+    "title": "Opportunity and Spirit Mars Rovers land on Mars",
+    "date": "2004-01-01",
+    "precision": "year",
+    "url": "https://www.computerhistory.org/timeline/2004/",
+    "publisher": "Computer History Museum",
+    "summary": "The Spirit and Opportunity rovers extended robotic exploration of Mars through remotely coordinated operations."
+  },
+  {
+    "title": "Stanford's autonomous vehicle wins 2005 DARPA \u201cGrand Challenge\u201d",
+    "date": "2005-01-01",
+    "precision": "year",
+    "url": "https://www.computerhistory.org/timeline/2005/",
+    "publisher": "Computer History Museum",
+    "summary": "A Stanford autonomous vehicle won the DARPA Grand Challenge, demonstrating progress in robotic navigation in a bounded competition."
+  },
+  {
+    "title": "The Apple iPhone is released",
+    "date": "2007-01-01",
+    "precision": "year",
+    "url": "https://www.computerhistory.org/timeline/2007/",
+    "publisher": "Computer History Museum",
+    "summary": "The iPhone joined mobile communication, touch interaction and Internet access in a consumer handheld device."
+  },
+  {
+    "title": "Nvidia releases Cuda GPU",
+    "date": "2007-01-01",
+    "precision": "year",
+    "url": "https://www.computerhistory.org/timeline/2007/",
+    "publisher": "Computer History Museum",
+    "summary": "CUDA made graphics processors available for general-purpose parallel computing, later supporting machine-learning workloads."
+  },
+  {
+    "title": "Raspberry Pi, a credit-card-size single board computer, is released as a tool to promote science education",
+    "date": "2012-01-01",
+    "precision": "year",
+    "url": "https://www.computerhistory.org/timeline/2012/",
+    "publisher": "Computer History Museum",
+    "summary": "Raspberry Pi made low-cost programmable computing hardware accessible for education and experimentation."
+  },
+  {
+    "title": "First transatlantic wireless signals",
+    "date": "1901-12-01",
+    "precision": "month",
+    "url": "https://www.nobelprize.org/prizes/physics/1909/marconi/biographical/",
+    "publisher": "Nobel Prize",
+    "summary": "Marconi transmitted wireless signals across the Atlantic in December 1901, demonstrating long-distance radio communication."
+  },
+  {
+    "title": "Wright Flyer demonstrates powered flight",
+    "date": "1903-01-01",
+    "precision": "year",
+    "url": "https://airandspace.si.edu/explore/stories/wright-brothers",
+    "publisher": "Smithsonian National Air and Space Museum",
+    "summary": "The Wright brothers demonstrated powered flight in 1903, opening a new relationship between transport and engineering."
+  },
+  {
+    "title": "Ford introduces moving assembly line",
+    "date": "1913-01-01",
+    "precision": "year",
+    "url": "https://corporate.ford.com/articles/history/moving-assembly-line.html",
+    "publisher": "Ford Motor Company",
+    "summary": "The moving assembly line brought work to workers, changing manufacturing organization and production speed."
+  },
+  {
+    "title": "Fleming discovers penicillin",
+    "date": "1928-01-01",
+    "precision": "year",
+    "url": "https://www.nobelprize.org/prizes/medicine/1945/fleming/biographical/",
+    "publisher": "Nobel Prize",
+    "summary": "Fleming observed an antibacterial mould in 1928; subsequent development would transform infection treatment."
+  },
+  {
+    "title": "AlexNet demonstrates deep image classification",
+    "date": "2012-01-01",
+    "precision": "year",
+    "url": "https://papers.nips.cc/paper/4824-imagenet-classification-with-deep-convolutional-neural-networks",
+    "publisher": "NeurIPS",
+    "summary": "The published convolutional-network research advanced large-scale image classification."
+  },
+  {
+    "title": "Attention Is All You Need submitted",
+    "date": "2017-06-12",
+    "precision": "day",
+    "url": "https://arxiv.org/abs/1706.03762",
+    "publisher": "arXiv",
+    "summary": "The Transformer architecture introduced attention-based sequence modelling without recurrence."
+  },
+  {
+    "title": "GPT-3 research paper submitted",
+    "date": "2020-05-28",
+    "precision": "day",
+    "url": "https://arxiv.org/abs/2005.14165",
+    "publisher": "arXiv",
+    "summary": "Language Models are Few-Shot Learners described large-scale language modelling and few-shot task adaptation."
+  },
+  {
+    "date": "1947-12-16",
+    "precision": "day",
+    "title": "Point-contact transistor demonstrated",
+    "publisher": "Computer History Museum",
+    "url": "https://www.computerhistory.org/siliconengine/invention-of-the-point-contact-transistor/",
+    "summary": "Bardeen and Brattain achieved semiconductor amplification, a foundation for compact electronic devices."
+  },
+  {
+    "date": "1956-01-01",
+    "precision": "year",
+    "title": "Dartmouth artificial intelligence research workshop",
+    "publisher": "Dartmouth College",
+    "url": "https://home.dartmouth.edu/about/artificial-intelligence-ai-coined-dartmouth",
+    "summary": "A summer research project helped establish artificial intelligence as a named field of inquiry."
+  },
+  {
+    "date": "1969-07-20",
+    "precision": "day",
+    "title": "Apollo 11 lunar landing",
+    "publisher": "NASA",
+    "url": "https://www.nasa.gov/history/july-20-1969-one-giant-leap-for-mankind/",
+    "summary": "Apollo 11 brought humans to the lunar surface through a combination of engineering, computation and human operations."
+  },
+  {
+    "date": "1989-03-01",
+    "precision": "month",
+    "title": "World Wide Web proposal circulated",
+    "publisher": "W3C",
+    "url": "https://www.w3.org/History.html",
+    "summary": "Berners-Lee proposed a linked information system at CERN, laying groundwork for a global hypertext network."
+  },
+  {
+    "date": "1991-08-06",
+    "precision": "day",
+    "title": "Web announced on alt.hypertext",
+    "publisher": "W3C",
+    "url": "https://www.w3.org/History.html",
+    "summary": "The Web project was shared through an Internet discussion group, inviting wider participation beyond CERN."
+  },
+  {
+    "date": "2016-03-01",
+    "precision": "month",
+    "title": "AlphaGo defeats Lee Sedol",
+    "publisher": "Google DeepMind",
+    "url": "https://deepmind.google/research/breakthroughs/alphago/",
+    "summary": "AlphaGo won a Go match against Lee Sedol. This demonstrated specialized learning and search, not universal autonomy."
+  },
+  {
+    "date": "2023-03-15",
+    "precision": "day",
+    "title": "GPT-4 technical report submitted",
+    "publisher": "OpenAI / arXiv",
+    "url": "https://arxiv.org/abs/2303.08774",
+    "summary": "The technical report documented a large multimodal model and its capabilities and limitations. This is the report submission date, not the product launch date."
+  },
+  {
+    "date": "2024-10-25",
+    "precision": "day",
+    "title": "GPT-4o system card submitted to arXiv",
+    "publisher": "OpenAI / arXiv",
+    "url": "https://arxiv.org/abs/2410.21276",
+    "summary": "The system card documented multimodal capabilities and safety evaluations. This is the arXiv submission date, not the model launch date."
+  },
+  {
+    "date": "2025-01-22",
+    "precision": "day",
+    "title": "DeepSeek-R1 research submitted",
+    "publisher": "DeepSeek / arXiv",
+    "url": "https://arxiv.org/abs/2501.12948",
+    "summary": "Researchers reported reinforcement-learning methods for reasoning tasks. Reported results concern evaluated tasks, not a guarantee of general reliability."
+  },
+  {
+    "date": "2025-04-22",
+    "precision": "day",
+    "title": "\u03c00.5 robot generalization research submitted",
+    "publisher": "Physical Intelligence / arXiv",
+    "url": "https://arxiv.org/abs/2504.16054",
+    "summary": "Researchers described a vision-language-action model and experiments with household manipulation in new homes. Research demonstrations do not establish broad unsupervised deployment."
+  }
+]

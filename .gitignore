@@ -5,3 +5,8 @@ vault/
 !.env.example
 node_modules/
 .DS_Store
+data/
+dist/
+test-results/
+playwright-report/
+coverage/
