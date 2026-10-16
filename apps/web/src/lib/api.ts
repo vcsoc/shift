@@ -51,8 +51,13 @@ const timelineSchema = z.object({
   scenario: scenarioSchema,
   cutoff: z.string(),
 });
-export async function fetchTimeline(s: string): Promise<Timeline> {
-  const data = await api("/timeline?scenario=" + s);
+export async function fetchTimeline(
+  s: string,
+  military = false,
+): Promise<Timeline> {
+  const data = await api(
+    "/timeline?scenario=" + s + "&military=" + (military ? "1" : "0"),
+  );
   const parsed = timelineSchema.safeParse(data);
   if (!parsed.success)
     throw new ApiError(

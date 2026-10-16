@@ -174,7 +174,7 @@ export function Graph({
             key={d}
             role="button"
             tabIndex={0}
-            aria-label={`${es.length > 1 ? es.length + " events: " : ""}${es[0].title}`}
+            aria-label={`${es.length > 1 ? es.length + " events: " : ""}${es.map((e) => e.title).join("; ")}`}
             onClick={() => {
               seek(time(d));
               choose(es[0]);

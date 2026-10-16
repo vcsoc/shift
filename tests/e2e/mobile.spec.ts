@@ -50,7 +50,7 @@ test("captures drawn baseline curve and local editor", async ({ page }) => {
     path: "docs/screenshots/baseline-complete-1920x1080.png",
   });
   await page.getByRole("button", { name: "Manage timeline" }).click();
-  await page.getByRole("button", { name: "Manage Curve Points" }).click();
+  await page.getByRole("button", { name: "Advanced anchors" }).click();
   await page.getByRole("button", { name: "Add point", exact: true }).click();
   await page.screenshot({
     path: "docs/screenshots/curve-editor-1920x1080.png",

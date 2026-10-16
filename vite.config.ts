@@ -4,5 +4,12 @@ export default defineConfig({
   plugins: [react()],
   root: "apps/web",
   build: { outDir: "../../dist", emptyOutDir: true },
-  server: { proxy: { "/api": "http://127.0.0.1:3001" } },
+  server: {
+    proxy: {
+      "/api": {
+        target: process.env.API_PROXY_TARGET || "http://127.0.0.1:3001",
+        changeOrigin: false,
+      },
+    },
+  },
 });

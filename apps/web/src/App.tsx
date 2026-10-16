@@ -11,13 +11,25 @@ import {
   time,
   eventDate,
   dateLabel,
+  scenarioSchema,
+  SCENARIOS,
+  SCENARIO_LABELS,
 } from "../../../packages/shared/src/model";
 export function App() {
   const [scenario, setScenario] = useState<Scenario>(
-    new URLSearchParams(location.search).get("scenario") === "accelerated"
-      ? "accelerated"
-      : "baseline",
+    scenarioSchema.safeParse(
+      new URLSearchParams(location.search).get("scenario"),
+    ).data || "baseline",
   );
+  const [military, setMilitary] = useState(
+    new URLSearchParams(location.search).get("military") === "1",
+  );
+  const [speedNotice, setSpeedNotice] = useState("");
+  useEffect(() => {
+    if (!speedNotice) return;
+    const timer = setTimeout(() => setSpeedNotice(""), 6000);
+    return () => clearTimeout(timer);
+  }, [speedNotice]);
   const [active, setActive] = useState(START),
     [playing, setPlaying] = useState(false),
     [speed, setSpeed] = useState(10),
@@ -35,14 +47,14 @@ export function App() {
     setLoading(true);
     setError("");
     try {
-      const d = await fetchTimeline(scenario);
+      const d = await fetchTimeline(scenario, military);
       if (v === version.current) setData(d);
     } catch (e) {
       if (v === version.current) setError((e as Error).message);
     } finally {
       if (v === version.current) setLoading(false);
     }
-  }, [scenario]);
+  }, [scenario, military]);
   useEffect(() => {
     void reload();
   }, [reload]);
@@ -111,7 +123,10 @@ export function App() {
     id = requestAnimationFrame(frame);
     return () => cancelAnimationFrame(id);
   }, [playing, speed, seek, admin]);
-  const dated = (data?.events || [])
+  const visibleData = data
+    ? { ...data, events: data.events.filter((e) => military || !e.is_military) }
+    : null;
+  const dated = (visibleData?.events || [])
     .map((e) => ({ e, d: eventDate(e, scenario) }))
     .filter((v): v is { e: Event; d: string } => v.d !== null)
     .sort(
@@ -176,9 +191,9 @@ export function App() {
   return (
     <>
       <main className="stage" inert={admin}>
-        {data && !error && (
+        {visibleData && !error && (
           <Graph
-            data={data}
+            data={visibleData}
             active={active}
             seek={(t) => {
               setPlaying(false);
@@ -199,9 +214,6 @@ export function App() {
           </div>
         </header>
         <section className="event-overlay" aria-label="Current milestone">
-          <div className="year" data-testid="current-year">
-            {new Date(active).getUTCFullYear()}
-          </div>
           {event ? (
             <div className="event-detail">
               <div className="eyebrow">
@@ -224,6 +236,12 @@ export function App() {
                   Editable assumption · {event.forecasts?.[scenario].confidence}{" "}
                   confidence. {event.forecasts?.[scenario].rationale}
                 </p>
+              )}
+              {event.kind === "future_forecast" && (
+                <details className="forecast-assumptions">
+                  <summary>Assumptions & limits</summary>
+                  <p>{event.forecasts?.[scenario].assumptions}</p>
+                </details>
               )}
               <div className="sources">
                 {event.sources.map((s, i) => (
@@ -262,10 +280,29 @@ export function App() {
               <span>Scroll to move through time ↓</span>
             </p>
           )}
+          <div className="year" data-testid="current-year">
+            {new Date(active).getUTCFullYear()}
+          </div>
         </section>
         <aside className="disclaimer">
           Two illustrative indices, not empirical measurements.
           <br />A crossing does not mean humans are unnecessary.
+          {scenario === "exponential" && (
+            <span className="scenario-warning">
+              Exponential: speculative continuation of a task-horizon trend, not
+              a universal law.
+              <br />
+              Human-role end dates assume institutional change and may never
+              occur.{" "}
+              <a
+                href="https://metr.org/blog/2025-03-19-measuring-ai-ability-to-complete-long-tasks/"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Evidence ↗
+              </a>
+            </span>
+          )}
         </aside>
         {loading && !data && (
           <div className="state" role="status">
@@ -311,12 +348,21 @@ export function App() {
             />
           </label>
           <output>{new Date(active).getUTCFullYear()}</output>
-          <label className="speed">
-            <span className="sr-only">Playback speed</span>
+          <label
+            className="speed"
+            title="Playback speed: years advanced per real second while playing. Does not move time while paused."
+          >
+            <span className="speed-caption">Speed</span>
             <select
               aria-label="Playback speed"
               value={speed}
-              onChange={(e) => setSpeed(Number(e.target.value))}
+              onChange={(e) => {
+                const value = Number(e.target.value);
+                setSpeed(value);
+                setSpeedNotice(
+                  `Playback speed: ${value} years per second. ${playing ? "Playing at the new speed." : "Paused — press Play to advance time."}`,
+                );
+              }}
             >
               {[2, 10, 25, 100].map((s) => (
                 <option key={s} value={s}>
@@ -326,16 +372,53 @@ export function App() {
             </select>
           </label>
           <div className="segmented" aria-label="Forecast scenario">
-            {(["baseline", "accelerated"] as Scenario[]).map((s) => (
+            {SCENARIOS.map((s) => (
               <button
                 key={s}
                 aria-pressed={scenario === s}
                 onClick={() => changeScenario(s)}
               >
-                {s === "baseline" ? "Baseline" : "Accelerated"}
+                {SCENARIO_LABELS[s]}
               </button>
             ))}
           </div>
+          <button
+            className="military-toggle"
+            aria-label="Include military events"
+            aria-pressed={military}
+            aria-describedby="military-tooltip"
+            title={`Military events ${military ? "on" : "off"}`}
+            onClick={() => {
+              const value = !military;
+              setMilitary(value);
+              setSelected(null);
+              const url = new URL(location.href);
+              url.searchParams.set("military", value ? "1" : "0");
+              history.replaceState({}, "", url);
+            }}
+          >
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              aria-hidden="true"
+            >
+              <path d="M12 3 4 6v6c0 5 8 9 8 9s8-4 8-9V6z" />
+              <path d="M8 8l8 8m0-8-8 8" />
+            </svg>
+            <span
+              id="military-tooltip"
+              className="control-tooltip"
+              role="tooltip"
+            >
+              Military events:{" "}
+              {military ? "On — click to hide" : "Off — click to include"}{" "}
+              military history and forecasts.
+            </span>
+          </button>
           <button
             aria-label="Toggle theme"
             onClick={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}
@@ -352,6 +435,11 @@ export function App() {
             ⚙
           </button>
         </nav>
+        {speedNotice && (
+          <div className="playback-notice" role="status">
+            {speedNotice}
+          </div>
+        )}
       </main>
       <div className="scroll-track" aria-hidden="true" />
       {admin && data && (

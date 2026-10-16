@@ -6,7 +6,12 @@ import { openDatabase } from "../../apps/api/src/db";
 import { createServer } from "../../apps/api/src/server";
 import { seed } from "../../apps/api/src/seed";
 import history from "../../database/seeds/history.json";
-const TOTAL = history.length + 10;
+import {
+  RESEARCH_HISTORY,
+  NEW_FORECASTS,
+} from "../../apps/api/src/enhancements";
+const TOTAL =
+  history.length + 10 + RESEARCH_HISTORY.length + NEW_FORECASTS.length;
 const headers = { host: "127.0.0.1", "x-shift-admin": "local" };
 let dir: string,
   db: ReturnType<typeof openDatabase>,

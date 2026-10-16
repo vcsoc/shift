@@ -2,7 +2,13 @@ import { z } from "zod";
 export const CUTOFF = "2026-10-13";
 export const MIN_DATE = "1900-01-01";
 export const MAX_DATE = "2100-12-31";
-export const scenarioSchema = z.enum(["baseline", "accelerated"]);
+export const SCENARIOS = ["baseline", "accelerated", "exponential"] as const;
+export const SCENARIO_LABELS = {
+  baseline: "Baseline",
+  accelerated: "Accelerated",
+  exponential: "Exponential",
+};
+export const scenarioSchema = z.enum(SCENARIOS);
 export type Scenario = z.infer<typeof scenarioSchema>;
 export const dateSchema = z
   .string()
@@ -24,6 +30,12 @@ const sourceSchema = z.object({
     .refine((v) => /^https?:\/\//.test(v), "Only HTTP(S) URLs allowed"),
   accessed_at: dateSchema,
 });
+export const eventCurveSchema = z.object({
+  technology_index: z.number().min(0).max(100),
+  human_effort_index: z.number().min(0).max(100),
+  rationale: z.string().min(1).max(3000),
+});
+export type EventCurve = z.infer<typeof eventCurveSchema>;
 export const forecastSchema = z
   .object({
     estimated_start: dateSchema.nullable(),
@@ -32,6 +44,7 @@ export const forecastSchema = z
     rationale: z.string().min(1).max(3000),
     assumptions: z.string().max(3000),
     confidence: z.enum(["low", "medium", "high"]),
+    curve: eventCurveSchema.nullish(),
   })
   .superRefine((v, c) => {
     if (v.estimated_start && v.estimated_start <= CUTOFF)
@@ -64,14 +77,27 @@ export const eventSchema = z
     historical_date_start: dateSchema.nullable(),
     historical_date_end: dateSchema.nullable().default(null),
     category_id: z.string().min(1),
+    is_military: z.boolean().default(false),
+    curve: eventCurveSchema.nullish(),
     summary: z.string().trim().min(1).max(1000),
     impact: z.string().max(3000).default(""),
     technology_type: z.enum(["AI", "AI+robotics", "other"]).default("other"),
     status: z.enum(["draft", "published", "archived"]),
     sources: z.array(sourceSchema),
     forecasts: z
-      .object({ baseline: forecastSchema, accelerated: forecastSchema })
-      .optional(),
+      .object({
+        baseline: forecastSchema,
+        accelerated: forecastSchema,
+        exponential: forecastSchema.default({
+          estimated_start: null,
+          estimated_end: null,
+          description: "Not forecast in this dataset.",
+          rationale: "No estimate supplied for the Exponential scenario.",
+          assumptions: "No extrapolation assumed.",
+          confidence: "low",
+        }),
+      })
+      .nullish(),
     links: z
       .array(
         z.object({
@@ -84,6 +110,12 @@ export const eventSchema = z
   })
   .superRefine((v, c) => {
     if (v.kind === "future_forecast") {
+      if (v.curve)
+        c.addIssue({
+          code: "custom",
+          path: ["curve"],
+          message: "Forecast curve values belong in the scenario tabs",
+        });
       if (v.historical_date_start)
         c.addIssue({
           code: "custom",
@@ -94,7 +126,7 @@ export const eventSchema = z
         c.addIssue({
           code: "custom",
           path: ["forecasts"],
-          message: "Both scenario estimates required (or not forecast)",
+          message: "All three scenario estimates required (or not forecast)",
         });
     } else {
       if (!v.historical_date_start || v.historical_date_start > CUTOFF)
@@ -244,6 +276,14 @@ export function dateLabel(e: Event, s: Scenario) {
     e.kind === "future_forecast"
       ? e.forecasts?.[s].estimated_end
       : e.historical_date_end;
+  if (
+    e.kind === "future_forecast" &&
+    e.date_precision === "range" &&
+    d.endsWith("-01-01") &&
+    end &&
+    (end.endsWith("-01-01") || end.endsWith("-12-31"))
+  )
+    return `${d.slice(0, 4)}–${end.slice(0, 4)} (illustrative window)`;
   if (e.date_precision === "year") return d.slice(0, 4);
   if (e.date_precision === "month")
     return new Date(time(d)).toLocaleDateString("en-GB", {

@@ -4,14 +4,25 @@ Executed locally on 14 October 2026, Node 26.7.0, Chromium via Playwright, with 
 
 ## Executed results
 
-- `npm test`: **12/12 passed** across model, React component and SQLite/Fastify integration suites.
-- `npm run test:e2e`: **14/14 passed** against the actual production build and running server; final run 18.5 seconds including startup.
+- `npm test`: **23/23 passed** across model, React component and SQLite/Fastify integration suites.
+- `npm run test:e2e`: **23/23 passed** against the actual production build/server and real Vite proxy; full run 38.5 seconds including startup.
+- `npx playwright test tests/e2e/annotations.spec.ts --browser=firefox`: **6/6 passed**, including backup creation through Vite and the unified event/curve workflow.
 - Production build (`tsc --noEmit && vite build`): passed, including the build performed before the browser suite.
 - Development smoke: `npm run dev` served the Vite frontend on 127.0.0.1:5173 and returned `{"ok":true}` from the API on 127.0.0.1:3001.
 - `npm audit`: zero known vulnerabilities in the resolved dependency tree.
 - Screenshots below are real browser output, not mockups.
 
 Vite prints harmless Rollup comment-annotation warnings from Zod during build. They do not prevent compilation. Initial browser runs failed until Chromium was installed; subsequent tests found scroll quantization and empty-POST issues, which were fixed before the passing runs.
+
+## UI annotation batch
+
+All eight annotations are implemented and exercised. See [the item-by-item report](ui-annotations.md), including the reproduced Vite/Origin backup failure and fix, bottom-right layout, playback speed measurement, accessible icon tooltip, tabbed form, pencils and atomic event/curve coexistence. Original scaffold anchors remain accessible without data loss. Source histories and scenario estimates are not overwritten by the migration.
+
+## Scenario and military enhancement coverage
+
+Additional tests verify Exponential after Accelerated, URL/seek persistence, independently editable third-scenario forecasts, all four human-role cessation hypotheses and their uncertainty text, bounded curves with identical history, military filtering of both past/future markers and navigation inputs, mobile control bounds, version-1 JSON imports, and upgrading an existing database without overwriting prior estimates or reseeding deleted enhancement points. The research and subjective formula assumptions are recorded in [the scenario analysis](exponential-scenario.md). The separate AI/company-catalog expansion request is pending clarification of default toggle state and catalog scope; it is not claimed complete.
+
+New browser screenshots: [Exponential human-role hypotheses](screenshots/exponential-human-backstops.png), [mobile](screenshots/exponential-mobile.png), [military included](screenshots/military-included.png).
 
 ## Mandatory criteria coverage
 
@@ -46,4 +57,4 @@ Vite prints harmless Rollup comment-annotation warnings from Zod during build. T
 
 ## Not yet accepted as complete
 
-The application is usable locally and the executed suites pass, but the specification's full Definition of Done is **not certified**. Outstanding work includes the historical checklist/2026 source research, admin UI pagination beyond 500 records, per-field inline errors, scenario-metadata UI, exhaustive same-date/resize selection and failure-injection coverage, and physical-device/screen-reader/cross-browser review. See [README](../README.md#known-limitations--incomplete-specification-details) for precise feature and data limitations.
+The application is usable locally and the executed suites pass, but the specification's full Definition of Done is **not certified**. Outstanding work includes the historical checklist/2026 source research, admin UI pagination beyond 500 records, per-field inline errors, scenario-metadata UI, exhaustive same-date/resize selection and failure-injection coverage, and physical-device/screen-reader review and broader cross-browser coverage beyond the six Firefox annotation regressions. See [README](../README.md#known-limitations--incomplete-specification-details) for precise feature and data limitations.

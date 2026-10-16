@@ -1,19 +1,25 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { DB, openDatabase, saveEvent, savePoint } from "./db";
-import { Scenario } from "../../../packages/shared/src/model";
-export function seed(db: DB) {
+import {
+  Scenario,
+  SCENARIOS,
+  SCENARIO_LABELS,
+} from "../../../packages/shared/src/model";
+import { EXPONENTIAL_DATES } from "../../../packages/shared/src/exponential";
+import { seedEnhancements } from "./enhancements";
+function seedInitial(db: DB) {
   if (db.prepare("SELECT id FROM seed_log WHERE id=?").get("initial-v1"))
     return;
   db.transaction(() => {
-    for (const id of ["baseline", "accelerated"])
+    for (const id of SCENARIOS)
       db.prepare(
         "INSERT OR IGNORE INTO scenarios(id,name,description,assumptions,is_default) VALUES(?,?,?,?,?)",
       ).run(
         id,
-        id === "baseline" ? "Baseline" : "Accelerated",
+        SCENARIO_LABELS[id],
         "Illustrative editable scenario, not a validated prediction",
-        "Human accountability, governance, escalation and auditing continue.",
+        "Human accountability, governance, escalation and auditing continue in near-term workflows; separate long-run cessation hypotheses require institutional change and may never occur.",
         id === "baseline" ? 1 : 0,
       );
     for (const [id, name] of [
@@ -114,7 +120,11 @@ export function seed(db: DB) {
         status: "published",
         technology_type: cat === "ai" ? "AI" : "AI+robotics",
         sources: [],
-        forecasts: { baseline: f(baseline), accelerated: f(accelerated) },
+        forecasts: {
+          baseline: f(baseline),
+          accelerated: f(accelerated),
+          exponential: f(EXPONENTIAL_DATES[i]),
+        },
       });
     }
     const shared = [
@@ -166,6 +176,10 @@ export function seed(db: DB) {
     }
     db.prepare("INSERT INTO seed_log(id) VALUES(?)").run("initial-v1");
   })();
+}
+export function seed(db: DB) {
+  seedInitial(db);
+  seedEnhancements(db);
 }
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const db = openDatabase();

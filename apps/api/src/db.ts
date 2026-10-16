@@ -9,6 +9,7 @@ import {
   pointSchema,
   Scenario,
 } from "../../../packages/shared/src/model";
+import { validateEventCurves } from "../../../packages/shared/src/event-points";
 export function openDatabase(dir = process.env.DATA_DIR || "data") {
   mkdirSync(dir, { recursive: true });
   const db = new Database(resolve(dir, "shift.sqlite"));
@@ -21,6 +22,14 @@ export function openDatabase(dir = process.env.DATA_DIR || "data") {
   if (!db.prepare("SELECT version FROM migrations WHERE version=2").get())
     db.transaction(() =>
       db.exec(readFileSync(resolve("database/migrations/002.sql"), "utf8")),
+    )();
+  if (!db.prepare("SELECT version FROM migrations WHERE version=3").get())
+    db.transaction(() =>
+      db.exec(readFileSync(resolve("database/migrations/003.sql"), "utf8")),
+    )();
+  if (!db.prepare("SELECT version FROM migrations WHERE version=4").get())
+    db.transaction(() =>
+      db.exec(readFileSync(resolve("database/migrations/004.sql"), "utf8")),
     )();
   return db;
 }
@@ -47,8 +56,35 @@ export function getEvents(db: DB): Event[] {
       .all(e.id) as ({ scenario_id: Scenario } & NonNullable<
       Event["forecasts"]
     >["baseline"])[];
+    const curves = db
+      .prepare("SELECT name FROM sqlite_master WHERE name='event_curve_values'")
+      .get()
+      ? (db
+          .prepare("SELECT * FROM event_curve_values WHERE event_id=?")
+          .all(e.id) as ({ series: string } & NonNullable<Event["curve"]>)[])
+      : [];
+    const shared = curves.find((c) => c.series === "history");
+    for (const forecast of f) {
+      const curve = curves.find((c) => c.series === forecast.scenario_id);
+      if (curve)
+        forecast.curve = {
+          technology_index: curve.technology_index,
+          human_effort_index: curve.human_effort_index,
+          rationale: curve.rationale,
+        };
+    }
     return {
       ...e,
+      ...(shared
+        ? {
+            curve: {
+              technology_index: shared.technology_index,
+              human_effort_index: shared.human_effort_index,
+              rationale: shared.rationale,
+            },
+          }
+        : {}),
+      is_military: Boolean(e.is_military),
       sources: db
         .prepare(
           "SELECT publisher,title,url,accessed_at FROM event_sources WHERE event_id=?",
@@ -73,9 +109,14 @@ export function saveEvent(db: DB, input: unknown, id?: string) {
   const e = eventSchema.parse(input);
   const key = id || e.id || randomUUID();
   return db.transaction(() => {
+    const old = getEvents(db).find((x) => x.id === key);
+    validateEventCurves([
+      ...getEvents(db).filter((x) => x.id !== key),
+      { ...e, id: key, deleted_at: old?.deleted_at },
+    ]);
     db.prepare(
-      `INSERT INTO events(id,title,kind,date_precision,historical_date_start,historical_date_end,category_id,summary,impact,technology_type,status) VALUES(@id,@title,@kind,@date_precision,@historical_date_start,@historical_date_end,@category_id,@summary,@impact,@technology_type,@status) ON CONFLICT(id) DO UPDATE SET title=excluded.title,kind=excluded.kind,date_precision=excluded.date_precision,historical_date_start=excluded.historical_date_start,historical_date_end=excluded.historical_date_end,category_id=excluded.category_id,summary=excluded.summary,impact=excluded.impact,technology_type=excluded.technology_type,status=excluded.status,updated_at=CURRENT_TIMESTAMP`,
-    ).run({ ...e, id: key });
+      `INSERT INTO events(id,title,kind,date_precision,historical_date_start,historical_date_end,category_id,summary,impact,technology_type,status,is_military) VALUES(@id,@title,@kind,@date_precision,@historical_date_start,@historical_date_end,@category_id,@summary,@impact,@technology_type,@status,@is_military) ON CONFLICT(id) DO UPDATE SET title=excluded.title,kind=excluded.kind,date_precision=excluded.date_precision,historical_date_start=excluded.historical_date_start,historical_date_end=excluded.historical_date_end,category_id=excluded.category_id,summary=excluded.summary,impact=excluded.impact,technology_type=excluded.technology_type,status=excluded.status,is_military=excluded.is_military,updated_at=CURRENT_TIMESTAMP`,
+    ).run({ ...e, id: key, is_military: e.is_military ? 1 : 0 });
     for (const table of ["event_sources", "event_forecasts"])
       db.prepare(`DELETE FROM ${table} WHERE event_id=?`).run(key);
     db.prepare("DELETE FROM event_links WHERE source_event_id=?").run(key);
@@ -97,6 +138,28 @@ export function saveEvent(db: DB, input: unknown, id?: string) {
           f.assumptions,
           f.confidence,
         );
+    db.prepare("DELETE FROM event_curve_values WHERE event_id=?").run(key);
+    const curveInsert = db.prepare(
+      "INSERT INTO event_curve_values(event_id,series,technology_index,human_effort_index,rationale) VALUES(?,?,?,?,?)",
+    );
+    if (e.curve)
+      curveInsert.run(
+        key,
+        "history",
+        e.curve.technology_index,
+        e.curve.human_effort_index,
+        e.curve.rationale,
+      );
+    if (e.forecasts)
+      for (const [s, f] of Object.entries(e.forecasts))
+        if (f.curve)
+          curveInsert.run(
+            key,
+            s,
+            f.curve.technology_index,
+            f.curve.human_effort_index,
+            f.curve.rationale,
+          );
     for (const l of e.links)
       db.prepare("INSERT INTO event_links VALUES(?,?,?,?)").run(
         key,
@@ -134,7 +197,17 @@ export function savePoint(db: DB, input: unknown, id?: string) {
 }
 export function exportData(db: DB) {
   return {
-    schema_version: 1,
+    schema_version: db
+      .prepare("SELECT name FROM sqlite_master WHERE name='event_curve_values'")
+      .get()
+      ? 3
+      : (
+            db.prepare("SELECT COUNT(*) AS n FROM scenarios").get() as {
+              n: number;
+            }
+          ).n === 3
+        ? 2
+        : 1,
     scenarios: db.prepare("SELECT * FROM scenarios").all(),
     categories: db.prepare("SELECT * FROM categories").all(),
     events: getEvents(db),

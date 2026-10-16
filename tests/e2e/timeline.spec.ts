@@ -204,7 +204,7 @@ test("curve editor previews and persists geometry changes", async ({
   page,
 }) => {
   await page.getByRole("button", { name: "Manage timeline" }).click();
-  await page.getByRole("button", { name: "Manage Curve Points" }).click();
+  await page.getByRole("button", { name: "Advanced anchors" }).click();
   await page.getByRole("button", { name: "Add point", exact: true }).click();
   await page.getByLabel("Point date").fill("2041-02-03");
   await page.getByLabel("Technology index (0–100)").fill("61");
@@ -217,7 +217,7 @@ test("curve editor previews and persists geometry changes", async ({
   await expect(page.locator(".record-list")).toContainText("2041-02-03");
   await page.reload();
   await page.getByRole("button", { name: "Manage timeline" }).click();
-  await page.getByRole("button", { name: "Manage Curve Points" }).click();
+  await page.getByRole("button", { name: "Advanced anchors" }).click();
   await expect(page.locator(".record-list")).toContainText("2041-02-03");
   await page.locator(".record-title").filter({ hasText: "2041-02-03" }).click();
   await page.getByLabel("Technology index (0–100)").fill("66");

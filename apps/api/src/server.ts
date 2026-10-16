@@ -18,7 +18,13 @@ import {
   eventSchema,
   pointSchema,
   scenarioSchema,
+  SCENARIOS,
 } from "../../../packages/shared/src/model";
+import { upgradeImport } from "./imports";
+import {
+  timelinePoints,
+  validateEventCurves,
+} from "../../../packages/shared/src/event-points";
 const scenarioEdit = z.object({
   name: z.string().min(1),
   description: z.string(),
@@ -33,7 +39,7 @@ const categorySchema = z.object({
   parent_id: z.string().nullable().default(null),
 });
 const bundle = z.object({
-  schema_version: z.literal(1),
+  schema_version: z.literal(3),
   scenarios: z
     .array(
       scenarioEdit.extend({
@@ -41,7 +47,7 @@ const bundle = z.object({
         is_default: z.number().optional(),
       }),
     )
-    .length(2),
+    .length(3),
   categories: z.array(categorySchema.extend({ id: z.string().min(1) })),
   events: z.array(
     eventSchema.safeExtend({
@@ -110,19 +116,25 @@ export function createServer(db: DB, dataDir = process.env.DATA_DIR || "data") {
     const s = scenarioSchema.parse(
       (req.query as { scenario?: string }).scenario || "baseline",
     );
-    if (cache.has(s)) return cache.get(s);
+    const military =
+      z
+        .enum(["0", "1"])
+        .parse((req.query as { military?: string }).military || "0") === "1";
+    const key = `${s}:${military}`;
+    if (cache.has(key)) return cache.get(key);
     const result = {
       scenario: s,
       cutoff: CUTOFF,
       events: getEvents(db).filter(
-        (e) => e.status === "published" && !e.deleted_at,
+        (e) =>
+          e.status === "published" &&
+          !e.deleted_at &&
+          (military || !e.is_military),
       ),
-      points: points(db).filter(
-        (p) => p.scenario_id === null || p.scenario_id === s,
-      ),
+      points: timelinePoints(points(db), getEvents(db), s),
       categories: db.prepare("SELECT * FROM categories").all(),
     };
-    cache.set(s, result);
+    cache.set(key, result);
     return result;
   });
   app.get("/api/v1/events", async (req) => {
@@ -185,6 +197,13 @@ export function createServer(db: DB, dataDir = process.env.DATA_DIR || "data") {
     async (req) => {
       need("events", req.params.id);
       db.transaction(() => {
+        validateEventCurves(
+          getEvents(db).map((e) =>
+            e.id === req.params.id
+              ? { ...e, status: "published", deleted_at: null }
+              : e,
+          ),
+        );
         db.prepare(
           "UPDATE events SET deleted_at=NULL,status='published' WHERE id=?",
         ).run(req.params.id);
@@ -274,8 +293,8 @@ export function createServer(db: DB, dataDir = process.env.DATA_DIR || "data") {
   });
   app.get("/api/v1/export", async () => exportData(db));
   function preview(body: unknown) {
-    const parsed = bundle.parse(body);
-    if (new Set(parsed.scenarios.map((s) => s.id)).size !== 2)
+    const parsed = bundle.parse(upgradeImport(body));
+    if (new Set(parsed.scenarios.map((s) => s.id)).size !== SCENARIOS.length)
       throw new Error("Duplicate scenario");
     for (const list of [parsed.events, parsed.categories, parsed.curve_points])
       if (new Set(list.map((x) => x.id)).size !== list.length)
@@ -297,14 +316,13 @@ export function createServer(db: DB, dataDir = process.env.DATA_DIR || "data") {
       if (dates.has(key)) throw new Error("Duplicate point dates");
       dates.add(key);
     }
-    for (const s of [null, "baseline", "accelerated"])
+    for (const s of [null, ...SCENARIOS])
       if (parsed.curve_points.filter((p) => p.scenario_id === s).length < 2)
         throw new Error("Each series requires at least two points");
     for (const [series, date] of [
       [null, "1900-01-01"],
       [null, CUTOFF],
-      ["baseline", "2100-12-31"],
-      ["accelerated", "2100-12-31"],
+      ...SCENARIOS.map((s) => [s, "2100-12-31"]),
     ])
       if (
         !parsed.curve_points.some(
@@ -312,6 +330,7 @@ export function createServer(db: DB, dataDir = process.env.DATA_DIR || "data") {
         )
       )
         throw new Error("Import requires start, cutoff and endpoint anchors");
+    validateEventCurves(parsed.events);
     const current = exportData(db);
     return {
       parsed,
@@ -339,6 +358,7 @@ export function createServer(db: DB, dataDir = process.env.DATA_DIR || "data") {
     const { parsed } = preview(b.data);
     db.transaction(() => {
       for (const t of [
+        "event_curve_values",
         "event_links",
         "event_sources",
         "event_forecasts",
@@ -413,11 +433,13 @@ export function createServer(db: DB, dataDir = process.env.DATA_DIR || "data") {
         throw new Error("Backup integrity check failed");
       if ((backup.pragma("foreign_key_check") as unknown[]).length)
         throw new Error("Backup contains invalid references");
-      preview(exportData(backup));
       if (
-        !backup.prepare("SELECT version FROM migrations WHERE version=2").get()
+        !backup.prepare("SELECT version FROM migrations WHERE version=3").get()
       )
-        throw new Error("Backup schema version is not supported");
+        throw new Error(
+          "Older SQLite backup schema: export JSON with the original app and import that JSON here.",
+        );
+      preview(exportData(backup));
       db.prepare("ATTACH DATABASE ? AS restore_snapshot").run(
         resolve(backupDir, b.name),
       );
@@ -432,15 +454,26 @@ export function createServer(db: DB, dataDir = process.env.DATA_DIR || "data") {
             "event_sources",
             "curve_points",
             "event_links",
+            "event_curve_values",
             "audit_log",
             "seed_log",
           ];
           for (const table of [...tables].reverse())
             db.prepare(`DELETE FROM ${table}`).run();
-          for (const table of tables)
+          for (const table of tables) {
+            if (
+              table === "event_curve_values" &&
+              !backup
+                .prepare(
+                  "SELECT name FROM sqlite_master WHERE name='event_curve_values'",
+                )
+                .get()
+            )
+              continue;
             db.prepare(
               `INSERT INTO ${table} SELECT * FROM restore_snapshot.${table}`,
             ).run();
+          }
           audit(db, "database", "all", "restore", { backup: b.name });
         })();
       } finally {

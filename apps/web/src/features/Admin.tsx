@@ -1,32 +1,26 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Category,
+  CUTOFF,
   Event,
   Point,
   Scenario,
+  SCENARIOS,
+  SCENARIO_LABELS,
   eventSchema,
   pointSchema,
-  CUTOFF,
-  MAX_DATE,
-  MIN_DATE,
 } from "../../../../packages/shared/src/model";
 import { api, ApiError } from "../lib/api";
+import { Field } from "../components/Field";
+import { EventEditor, CurvePreview, Pencil } from "./EventEditor";
+import { DataTools } from "./DataTools";
 type Props = {
   scenario: Scenario;
   categories: Category[];
   onClose: () => void;
   onRefresh: () => Promise<void>;
 };
-const forecast = () => ({
-  estimated_start: null,
-  estimated_end: null,
-  description:
-    "Human accountability, governance, escalation and auditing continue.",
-  rationale: "",
-  assumptions: "",
-  confidence: "low" as const,
-});
-function blankEvent(cat: string): Event {
+function blankEvent(category_id: string): Event {
   return {
     id: "",
     title: "",
@@ -34,7 +28,8 @@ function blankEvent(cat: string): Event {
     date_precision: "year",
     historical_date_start: "2000-01-01",
     historical_date_end: null,
-    category_id: cat,
+    category_id,
+    is_military: false,
     summary: "",
     impact: "",
     technology_type: "other",
@@ -51,77 +46,46 @@ const emptyPoint = (s: Scenario): Point => ({
   human_effort_index: 88,
   rationale: "",
 });
-function Field({
-  label,
-  value,
-  onChange,
-  type = "text",
-  required = false,
-}: {
-  label: string;
-  value: string | number;
-  onChange: (s: string) => void;
-  type?: string;
-  required?: boolean;
-}) {
-  return (
-    <label>
-      {label}
-      {required ? " *" : ""}
-      {type === "textarea" ? (
-        <textarea
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          required={required}
-        />
-      ) : (
-        <input
-          type={type}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          required={required}
-        />
-      )}
-    </label>
-  );
-}
 export function Admin({ scenario, categories, onClose, onRefresh }: Props) {
   const dialog = useRef<HTMLElement>(null);
-  useEffect(() => {
-    const previous = document.activeElement as HTMLElement | null;
-    dialog.current?.querySelector<HTMLButtonElement>("button")?.focus();
-    return () => previous?.focus();
-  }, []);
   const [tab, setTab] = useState<"events" | "points" | "data">("events"),
     [events, setEvents] = useState<Event[]>([]),
     [points, setPoints] = useState<Point[]>([]),
     [search, setSearch] = useState(""),
-    [sort, setSort] = useState("title");
-  const [event, setEvent] = useState<Event | null>(null),
+    [sort, setSort] = useState("title"),
+    [event, setEvent] = useState<Event | null>(null),
     [point, setPoint] = useState<Point | null>(null),
     [dirty, setDirty] = useState(false),
+    [busy, setBusy] = useState(false),
     [message, setMessage] = useState(""),
     [errors, setErrors] = useState<Record<string, string[]>>({}),
-    [busy, setBusy] = useState(false),
-    [preview, setPreview] = useState(false),
-    [importText, setImportText] = useState(""),
-    [importPreview, setImportPreview] = useState<unknown>(null),
-    [backups, setBackups] = useState<string[]>([]),
-    [backup, setBackup] = useState(""),
-    [newCategory, setNewCategory] = useState("");
+    [backups, setBackups] = useState<string[]>([]);
+  const recordSeries = point?.scenario_id || scenario;
+  const listedPoints = points.filter(
+    (p) => p.scenario_id === null || p.scenario_id === scenario,
+  );
   async function load() {
-    const [e, p, b] = await Promise.all([
+    const [e, b, ...series] = await Promise.all([
       api<{ items: Event[] }>("/events?limit=500"),
-      api<Point[]>("/curve-points?scenario=" + scenario),
       api<string[]>("/admin/backups"),
+      ...SCENARIOS.map((s) => api<Point[]>("/curve-points?scenario=" + s)),
     ]);
     setEvents(e.items);
-    setPoints(p);
     setBackups(b);
+    setPoints([...new Map(series.flat().map((p) => [p.id, p])).values()]);
   }
   useEffect(() => {
     void load().catch((e) => setMessage(e.message));
   }, [scenario]);
+  useEffect(() => {
+    const prior = document.activeElement as HTMLElement | null;
+    dialog.current?.querySelector<HTMLButtonElement>("button")?.focus();
+    return () => prior?.focus();
+  }, []);
+  const discard = () => !dirty || confirm("Discard unsaved changes?");
+  const close = () => {
+    if (discard()) onClose();
+  };
   useEffect(() => {
     const warn = (e: BeforeUnloadEvent) => {
       if (dirty) {
@@ -130,23 +94,16 @@ export function Admin({ scenario, categories, onClose, onRefresh }: Props) {
       }
     };
     window.addEventListener("beforeunload", warn);
-    return () => window.removeEventListener("beforeunload", warn);
-  }, [dirty]);
-  const discard = () => !dirty || confirm("Discard unsaved changes?");
-  const close = () => {
-    if (discard()) onClose();
-  };
-  useEffect(() => {
-    const key = (e: KeyboardEvent) => {
+    const keys = (e: KeyboardEvent) => {
       if (e.key === "Escape") close();
       if (e.key === "Tab") {
-        const focusable = [
+        const controls = [
           ...(dialog.current?.querySelectorAll<HTMLElement>(
             "button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea,a[href]",
           ) || []),
-        ].filter((el) => el.getClientRects().length);
-        const first = focusable[0],
-          last = focusable.at(-1);
+        ].filter((e) => e.getClientRects().length && e.tabIndex >= 0);
+        const first = controls[0],
+          last = controls.at(-1);
         if (e.shiftKey && document.activeElement === first) {
           e.preventDefault();
           last?.focus();
@@ -156,83 +113,110 @@ export function Admin({ scenario, categories, onClose, onRefresh }: Props) {
         }
       }
     };
-    window.addEventListener("keydown", key);
-    return () => window.removeEventListener("keydown", key);
+    window.addEventListener("keydown", keys);
+    return () => {
+      window.removeEventListener("beforeunload", warn);
+      window.removeEventListener("keydown", keys);
+    };
   }, [dirty]);
-  async function run(fn: () => Promise<unknown>, refresh = true) {
+  async function run(action: () => Promise<unknown>, refresh = true) {
     setBusy(true);
     setErrors({});
     setMessage("");
     try {
-      await fn();
+      await action();
       if (refresh) {
         await load();
         await onRefresh();
       }
       setMessage("Saved successfully.");
       return true;
-    } catch (e) {
-      setMessage((e as Error).message);
-      if (e instanceof ApiError) setErrors(e.fieldErrors);
+    } catch (error) {
+      setMessage((error as Error).message);
+      if (error instanceof ApiError) setErrors(error.fieldErrors);
       return false;
     } finally {
       setBusy(false);
     }
   }
-  function editEvent(e: Event) {
+  function switchTab(t: typeof tab) {
     if (!discard()) return;
+    setTab(t);
+    setEvent(null);
     setPoint(null);
-    setEvent(structuredClone(e));
     setDirty(false);
     setErrors({});
-    setPreview(false);
+    setSearch("");
+  }
+  function editEvent(e: Event) {
+    if (!discard()) return;
+    setEvent(structuredClone(e));
+    setPoint(null);
+    setDirty(false);
+    setErrors({});
   }
   function editPoint(p: Point) {
     if (!discard()) return;
-    setEvent(null);
     setPoint({ ...p });
+    setEvent(null);
     setDirty(false);
     setErrors({});
-    setPreview(false);
   }
-  function changeEvent(p: Partial<Event>) {
-    setEvent((e) => (e ? { ...e, ...p } : e));
+  const changeEvent = (patch: Partial<Event>) => {
+    setEvent((e) => (e ? { ...e, ...patch } : e));
     setDirty(true);
-    setPreview(false);
-  }
-  function changePoint(p: Partial<Point>) {
-    setPoint((e) => (e ? { ...e, ...p } : e));
+  };
+  const changePoint = (patch: Partial<Point>) => {
+    setPoint((p) => (p ? { ...p, ...patch } : p));
     setDirty(true);
-  }
+  };
   async function save() {
     const value = event || point;
     if (!value) return;
     const input = { ...value, id: value.id || undefined };
     const validation = (event ? eventSchema : pointSchema).safeParse(input);
     if (!validation.success) {
-      const err: Record<string, string[]> = {};
-      for (const i of validation.error.issues) {
-        const key = i.path.join(".");
-        err[key] = [...(err[key] || []), i.message];
+      const fields: Record<string, string[]> = {};
+      for (const issue of validation.error.issues) {
+        const key = issue.path.join(".");
+        fields[key] = [...(fields[key] || []), issue.message];
       }
-      setErrors(err);
+      setErrors(fields);
       setMessage("Check the fields below.");
       return;
     }
     const path = event ? "/events" : "/curve-points";
-    const ok = await run(() =>
-      api(
-        path + (value.id ? "/" + value.id : ""),
-        value.id ? "PATCH" : "POST",
-        input,
-      ),
-    );
-    if (ok) {
+    if (
+      await run(() =>
+        api(
+          path + (value.id ? "/" + value.id : ""),
+          value.id ? "PATCH" : "POST",
+          input,
+        ),
+      )
+    ) {
       setDirty(false);
       setEvent(null);
       setPoint(null);
     }
   }
+  const sortedEvents = events
+    .filter((e) =>
+      (e.title + " " + e.status).toLowerCase().includes(search.toLowerCase()),
+    )
+    .sort((a, b) =>
+      sort === "title"
+        ? a.title.localeCompare(b.title)
+        : (
+            a.historical_date_start ||
+            a.forecasts?.[scenario].estimated_start ||
+            ""
+          ).localeCompare(
+            b.historical_date_start ||
+              b.forecasts?.[scenario].estimated_start ||
+              "",
+          ),
+    );
   return (
     <div className="admin-backdrop">
       <section
@@ -245,47 +229,49 @@ export function Admin({ scenario, categories, onClose, onRefresh }: Props) {
         <header className="admin-header">
           <div>
             <h2>Manage timeline</h2>
-            <p>Local SQLite · historical cutoff {CUTOFF}</p>
+            <p>
+              Events & their curve points · local SQLite · historical cutoff{" "}
+              {CUTOFF}
+            </p>
           </div>
           <button onClick={close} aria-label="Close management">
             ×
           </button>
         </header>
         <nav className="tabs">
-          {(["events", "points", "data"] as const).map((t) => (
-            <button
-              key={t}
-              aria-pressed={tab === t}
-              onClick={() => {
-                if (discard()) {
-                  setTab(t);
-                  setEvent(null);
-                  setPoint(null);
-                  setDirty(false);
-                }
-              }}
-            >
-              {t === "events"
-                ? "Manage Events"
-                : t === "points"
-                  ? "Manage Curve Points"
-                  : "Data & backups"}
-            </button>
-          ))}
+          <button
+            aria-pressed={tab !== "data"}
+            onClick={() => switchTab("events")}
+          >
+            Events & curve points
+          </button>
+          <button
+            aria-pressed={tab === "data"}
+            onClick={() => switchTab("data")}
+          >
+            Data & backups
+          </button>
         </nav>
         <div role="status" className="notice">
           {message}
         </div>
-        {Object.entries(errors).length > 0 && (
+        {Object.keys(errors).length > 0 && (
           <div role="alert" className="validation">
-            {Object.entries(errors).map(([k, v]) => (
-              <p key={k}>
-                <strong>{k}</strong>: {v.join(" · ")}
+            {Object.entries(errors).map(([key, issues]) => (
+              <p key={key}>
+                <strong>{key}</strong>: {issues.join(" · ")}
               </p>
             ))}
           </div>
         )}
-        {tab !== "data" && (
+        {tab === "data" ? (
+          <DataTools
+            busy={busy}
+            backups={backups}
+            categories={categories}
+            run={run}
+          />
+        ) : (
           <div className="admin-layout">
             <section className="record-list">
               <div className="list-tools">
@@ -312,98 +298,88 @@ export function Admin({ scenario, categories, onClose, onRefresh }: Props) {
                 >
                   Add {tab === "events" ? "event" : "point"}
                 </button>
+                <button
+                  className="advanced-toggle"
+                  onClick={() =>
+                    switchTab(tab === "events" ? "points" : "events")
+                  }
+                >
+                  {tab === "events"
+                    ? "Advanced anchors"
+                    : "Back to events & curve points"}
+                </button>
               </div>
               {tab === "events"
-                ? events
-                    .filter((e) =>
-                      (e.title + " " + e.status)
-                        .toLowerCase()
-                        .includes(search.toLowerCase()),
-                    )
-                    .sort((a, b) =>
-                      sort === "title"
-                        ? a.title.localeCompare(b.title)
-                        : (
-                            a.historical_date_start ||
-                            a.forecasts?.[scenario].estimated_start ||
-                            ""
-                          ).localeCompare(
-                            b.historical_date_start ||
-                              b.forecasts?.[scenario].estimated_start ||
-                              "",
-                          ),
-                    )
-                    .map((e) => (
-                      <article
-                        key={e.id}
-                        className={e.deleted_at ? "deleted" : ""}
+                ? sortedEvents.map((e) => (
+                    <article
+                      key={e.id}
+                      className={e.deleted_at ? "deleted" : ""}
+                    >
+                      <button
+                        className="record-title"
+                        onClick={() => editEvent(e)}
+                        title="Edit this event and its curve values"
                       >
+                        {e.title} <Pencil />
+                      </button>
+                      <small>
+                        {e.kind.replaceAll("_", " ")} ·{" "}
+                        {e.deleted_at ? "deleted" : e.status} · curve point
+                      </small>
+                      <div className="record-actions">
                         <button
-                          className="record-title"
-                          onClick={() => editEvent(e)}
+                          onClick={() =>
+                            editEvent({
+                              ...structuredClone(e),
+                              id: "",
+                              title: e.title + " (copy)",
+                            })
+                          }
                         >
-                          {e.title}
+                          Duplicate
                         </button>
-                        <small>
-                          {e.kind.replaceAll("_", " ")} ·{" "}
-                          {e.deleted_at ? "deleted" : e.status}
-                        </small>
-                        <div className="record-actions">
-                          <button
-                            onClick={() =>
-                              editEvent({
-                                ...structuredClone(e),
-                                id: "",
-                                title: e.title + " (copy)",
-                              })
-                            }
-                          >
-                            Duplicate
-                          </button>
-                          {e.deleted_at || e.status === "archived" ? (
-                            <button
-                              disabled={busy}
-                              onClick={() =>
-                                void run(() =>
-                                  api("/events/" + e.id + "/restore", "POST"),
-                                )
-                              }
-                            >
-                              Restore
-                            </button>
-                          ) : (
-                            <button
-                              disabled={busy}
-                              onClick={() =>
-                                void run(() =>
-                                  api("/events/" + e.id, "PATCH", {
-                                    status: "archived",
-                                  }),
-                                )
-                              }
-                            >
-                              Archive
-                            </button>
-                          )}
+                        {e.deleted_at || e.status === "archived" ? (
                           <button
                             disabled={busy}
-                            onClick={() => {
-                              if (
-                                confirm(
-                                  "Soft-delete this event? It can be restored.",
-                                )
+                            onClick={() =>
+                              void run(() =>
+                                api("/events/" + e.id + "/restore", "POST"),
                               )
-                                void run(() =>
-                                  api("/events/" + e.id, "DELETE"),
-                                );
-                            }}
+                            }
                           >
-                            Delete
+                            Restore
                           </button>
-                        </div>
-                      </article>
-                    ))
-                : points
+                        ) : (
+                          <button
+                            disabled={busy}
+                            onClick={() =>
+                              void run(() =>
+                                api("/events/" + e.id, "PATCH", {
+                                  status: "archived",
+                                }),
+                              )
+                            }
+                          >
+                            Archive
+                          </button>
+                        )}
+                        <button
+                          disabled={busy}
+                          onClick={() => {
+                            if (
+                              confirm(
+                                "Soft-delete this event and remove its curve contribution? Both can be restored.",
+                              )
+                            )
+                              void run(() => api("/events/" + e.id, "DELETE"));
+                          }}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </article>
+                  ))
+                : listedPoints
                     .filter((p) =>
                       (
                         p.point_date +
@@ -426,7 +402,8 @@ export function Admin({ scenario, categories, onClose, onRefresh }: Props) {
                           className="record-title"
                           onClick={() => editPoint(p)}
                         >
-                          {p.point_date} · {p.scenario_id || "shared history"}
+                          {p.point_date} · {p.scenario_id || "shared history"}{" "}
+                          <Pencil />
                         </button>
                         <small>
                           Technology {p.technology_index} / Human{" "}
@@ -437,7 +414,7 @@ export function Admin({ scenario, categories, onClose, onRefresh }: Props) {
                           onClick={() => {
                             if (
                               confirm(
-                                "Delete curve anchor? Essential anchors are protected.",
+                                "Delete scaffold anchor? Essential boundaries are protected.",
                               )
                             )
                               void run(() =>
@@ -450,432 +427,32 @@ export function Admin({ scenario, categories, onClose, onRefresh }: Props) {
                       </article>
                     ))}
             </section>
-            <section className="editor">
-              {!event && !point && (
-                <p>
-                  Select a record or add one.
-                  <br />
-                  Events and curve points are edited independently.
-                </p>
-              )}
-              {event && (
+            {event ? (
+              <EventEditor
+                event={event}
+                events={events}
+                anchors={points}
+                categories={categories}
+                scenario={scenario}
+                busy={busy}
+                errors={errors}
+                onChange={changeEvent}
+                onSave={() => void save()}
+              />
+            ) : point ? (
+              <section className="editor">
                 <form
+                  noValidate
                   onSubmit={(e) => {
                     e.preventDefault();
                     void save();
                   }}
                 >
-                  <h3>{event.id ? "Edit" : "Add"} event</h3>
-                  <Field
-                    label="Title"
-                    value={event.title}
-                    required
-                    onChange={(v) => changeEvent({ title: v })}
-                  />
-                  <label>
-                    Kind
-                    <select
-                      aria-label="Kind"
-                      value={event.kind}
-                      onChange={(e) => {
-                        const kind = e.target.value as Event["kind"];
-                        changeEvent({
-                          kind,
-                          ...(kind === "future_forecast"
-                            ? {
-                                historical_date_start: null,
-                                historical_date_end: null,
-                                forecasts: event.forecasts || {
-                                  baseline: forecast(),
-                                  accelerated: forecast(),
-                                },
-                              }
-                            : {
-                                historical_date_start:
-                                  event.historical_date_start || "2000-01-01",
-                                forecasts: undefined,
-                              }),
-                        });
-                      }}
-                    >
-                      <option value="verified_history">Verified history</option>
-                      <option value="approximate_history">
-                        Approximate history
-                      </option>
-                      <option value="observed_current">Observed current</option>
-                      <option value="future_forecast">Future forecast</option>
-                    </select>
-                  </label>
-                  <label>
-                    Date precision
-                    <select
-                      aria-label="Date precision"
-                      value={event.date_precision}
-                      onChange={(e) =>
-                        changeEvent({
-                          date_precision: e.target
-                            .value as Event["date_precision"],
-                        })
-                      }
-                    >
-                      {["day", "month", "year", "range"].map((v) => (
-                        <option key={v}>{v}</option>
-                      ))}
-                    </select>
-                  </label>
-                  {event.kind !== "future_forecast" ? (
-                    <>
-                      <Field
-                        label="Historical date (first day for month/year anchors)"
-                        type="date"
-                        value={event.historical_date_start || ""}
-                        onChange={(v) =>
-                          changeEvent({ historical_date_start: v || null })
-                        }
-                      />
-                      {event.date_precision === "range" && (
-                        <Field
-                          label="Historical range end"
-                          type="date"
-                          value={event.historical_date_end || ""}
-                          onChange={(v) =>
-                            changeEvent({ historical_date_end: v || null })
-                          }
-                        />
-                      )}
-                    </>
-                  ) : (
-                    (["baseline", "accelerated"] as const).map((s) => {
-                      const f = event.forecasts![s];
-                      const update = (v: Partial<typeof f>) =>
-                        changeEvent({
-                          forecasts: {
-                            ...event.forecasts!,
-                            [s]: { ...f, ...v },
-                          },
-                        });
-                      return (
-                        <fieldset key={s}>
-                          <legend>
-                            {s.toUpperCase()} · illustrative assumption
-                          </legend>
-                          <label className="checkbox">
-                            <input
-                              type="checkbox"
-                              checked={f.estimated_start === null}
-                              onChange={(e) =>
-                                update({
-                                  estimated_start: e.target.checked
-                                    ? null
-                                    : "2030-01-01",
-                                  estimated_end: null,
-                                })
-                              }
-                            />
-                            Not forecast
-                          </label>
-                          {f.estimated_start !== null && (
-                            <>
-                              <Field
-                                label="Estimated start"
-                                type="date"
-                                value={f.estimated_start}
-                                onChange={(v) =>
-                                  update({ estimated_start: v || null })
-                                }
-                              />
-                              <Field
-                                label="Estimated end (optional)"
-                                type="date"
-                                value={f.estimated_end || ""}
-                                onChange={(v) =>
-                                  update({ estimated_end: v || null })
-                                }
-                              />
-                            </>
-                          )}
-                          <Field
-                            label="Scenario description"
-                            type="textarea"
-                            value={f.description}
-                            onChange={(v) => update({ description: v })}
-                          />
-                          <Field
-                            label="Rationale"
-                            type="textarea"
-                            required
-                            value={f.rationale}
-                            onChange={(v) => update({ rationale: v })}
-                          />
-                          <Field
-                            label="Assumptions & uncertainty"
-                            type="textarea"
-                            value={f.assumptions}
-                            onChange={(v) => update({ assumptions: v })}
-                          />
-                          <label>
-                            Confidence
-                            <select
-                              value={f.confidence}
-                              onChange={(e) =>
-                                update({
-                                  confidence: e.target
-                                    .value as typeof f.confidence,
-                                })
-                              }
-                            >
-                              {["low", "medium", "high"].map((v) => (
-                                <option key={v}>{v}</option>
-                              ))}
-                            </select>
-                          </label>
-                        </fieldset>
-                      );
-                    })
-                  )}
-                  <label>
-                    Category
-                    <select
-                      aria-label="Category"
-                      value={event.category_id}
-                      onChange={(e) =>
-                        changeEvent({ category_id: e.target.value })
-                      }
-                    >
-                      {categories.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label>
-                    Technology type
-                    <select
-                      aria-label="Technology type"
-                      value={event.technology_type}
-                      onChange={(e) =>
-                        changeEvent({
-                          technology_type: e.target
-                            .value as Event["technology_type"],
-                        })
-                      }
-                    >
-                      {["AI", "AI+robotics", "other"].map((v) => (
-                        <option key={v}>{v}</option>
-                      ))}
-                    </select>
-                  </label>
-                  <Field
-                    label="Summary"
-                    type="textarea"
-                    value={event.summary}
-                    required
-                    onChange={(v) => changeEvent({ summary: v })}
-                  />
-                  <Field
-                    label="Impact & significance (interpretation)"
-                    type="textarea"
-                    value={event.impact}
-                    onChange={(v) => changeEvent({ impact: v })}
-                  />
-                  <label>
-                    Visibility
-                    <select
-                      aria-label="Visibility"
-                      value={event.status}
-                      onChange={(e) =>
-                        changeEvent({
-                          status: e.target.value as Event["status"],
-                        })
-                      }
-                    >
-                      {["draft", "published", "archived"].map((v) => (
-                        <option key={v}>{v}</option>
-                      ))}
-                    </select>
-                  </label>
-                  <fieldset>
-                    <legend>Sources (required for verified history)</legend>
-                    {event.sources.map((s, i) => (
-                      <div className="source-editor" key={i}>
-                        {(
-                          ["publisher", "title", "url", "accessed_at"] as const
-                        ).map((k) => (
-                          <Field
-                            key={k}
-                            label={k.replace("_", " ")}
-                            type={
-                              k === "accessed_at"
-                                ? "date"
-                                : k === "url"
-                                  ? "url"
-                                  : "text"
-                            }
-                            value={s[k]}
-                            onChange={(v) =>
-                              changeEvent({
-                                sources: event.sources.map((source, j) =>
-                                  j === i ? { ...source, [k]: v } : source,
-                                ),
-                              })
-                            }
-                          />
-                        ))}
-                        <button
-                          type="button"
-                          onClick={() =>
-                            changeEvent({
-                              sources: event.sources.filter((_, j) => i !== j),
-                            })
-                          }
-                        >
-                          Remove source
-                        </button>
-                      </div>
-                    ))}
-                    <button
-                      type="button"
-                      onClick={() =>
-                        changeEvent({
-                          sources: [
-                            ...event.sources,
-                            {
-                              publisher: "",
-                              title: "",
-                              url: "",
-                              accessed_at: new Date()
-                                .toISOString()
-                                .slice(0, 10),
-                            },
-                          ],
-                        })
-                      }
-                    >
-                      Add source
-                    </button>
-                  </fieldset>
-                  <fieldset>
-                    <legend>Related events</legend>
-                    {event.links.map((l, i) => (
-                      <div key={i}>
-                        <label>
-                          Event
-                          <select
-                            value={l.target_event_id}
-                            onChange={(e) =>
-                              changeEvent({
-                                links: event.links.map((x, j) =>
-                                  j === i
-                                    ? { ...x, target_event_id: e.target.value }
-                                    : x,
-                                ),
-                              })
-                            }
-                          >
-                            {events
-                              .filter((e) => e.id !== event.id)
-                              .map((e) => (
-                                <option key={e.id} value={e.id}>
-                                  {e.title}
-                                </option>
-                              ))}
-                          </select>
-                        </label>
-                        <label>
-                          Relationship
-                          <select
-                            value={l.relationship}
-                            onChange={(e) =>
-                              changeEvent({
-                                links: event.links.map((x, j) =>
-                                  j === i
-                                    ? {
-                                        ...x,
-                                        relationship: e.target
-                                          .value as typeof l.relationship,
-                                      }
-                                    : x,
-                                ),
-                              })
-                            }
-                          >
-                            <option>enables</option>
-                            <option>influenced-by</option>
-                          </select>
-                        </label>
-                        <Field
-                          label="Explanation"
-                          value={l.explanation}
-                          onChange={(v) =>
-                            changeEvent({
-                              links: event.links.map((x, j) =>
-                                j === i ? { ...x, explanation: v } : x,
-                              ),
-                            })
-                          }
-                        />
-                        <button
-                          type="button"
-                          onClick={() =>
-                            changeEvent({
-                              links: event.links.filter((_, j) => j !== i),
-                            })
-                          }
-                        >
-                          Remove relationship
-                        </button>
-                      </div>
-                    ))}
-                    <button
-                      type="button"
-                      onClick={() =>
-                        changeEvent({
-                          links: [
-                            ...event.links,
-                            {
-                              target_event_id:
-                                events.find((e) => e.id !== event.id)?.id || "",
-                              relationship: "enables",
-                              explanation: "",
-                            },
-                          ],
-                        })
-                      }
-                    >
-                      Add relationship
-                    </button>
-                  </fieldset>
-                  <div className="form-actions">
-                    <button type="button" onClick={() => setPreview((p) => !p)}>
-                      Preview
-                    </button>
-                    <button disabled={busy} type="submit">
-                      Save event
-                    </button>
-                  </div>
-                  {preview && (
-                    <article className="preview">
-                      <h3>{event.title}</h3>
-                      <p>{event.summary}</p>
-                      <small>
-                        {event.kind} ·{" "}
-                        {event.historical_date_start ||
-                          event.forecasts?.[scenario].estimated_start ||
-                          "Not forecast"}
-                      </small>
-                    </article>
-                  )}
-                </form>
-              )}
-              {point && (
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    void save();
-                  }}
-                >
-                  <h3>{point.id ? "Edit" : "Add"} curve point</h3>
+                  <h3>{point.id ? "Edit" : "Add"} scaffold anchor</h3>
+                  <p>
+                    Advanced interpolation support. Add or edit ordinary
+                    milestones through Events & curve points.
+                  </p>
                   <label>
                     Series
                     <select
@@ -896,15 +473,18 @@ export function Admin({ scenario, categories, onClose, onRefresh }: Props) {
                       }
                     >
                       <option value="shared">Shared history</option>
-                      <option value="baseline">Baseline</option>
-                      <option value="accelerated">Accelerated</option>
+                      {SCENARIOS.map((s) => (
+                        <option key={s} value={s}>
+                          {SCENARIO_LABELS[s]}
+                        </option>
+                      ))}
                     </select>
                   </label>
                   <Field
                     label="Point date"
                     type="date"
                     value={point.point_date}
-                    onChange={(v) => changePoint({ point_date: v })}
+                    onChange={(point_date) => changePoint({ point_date })}
                   />
                   <Field
                     label="Technology index (0–100)"
@@ -927,209 +507,37 @@ export function Admin({ scenario, categories, onClose, onRefresh }: Props) {
                     type="textarea"
                     required
                     value={point.rationale}
-                    onChange={(v) => changePoint({ rationale: v })}
+                    onChange={(rationale) => changePoint({ rationale })}
                   />
-                  <PointPreview point={point} points={points} />
-                  <p>
-                    Immediate preview above. Saving refreshes the main graph.
-                    Shared history is identical in both scenarios.
-                  </p>
-                  <button disabled={busy} type="submit">
+                  <CurvePreview
+                    points={[
+                      ...points.filter(
+                        (p) =>
+                          p.id !== point.id &&
+                          (p.scenario_id === null ||
+                            p.scenario_id === recordSeries),
+                      ),
+                      point,
+                    ]}
+                  />
+                  <button type="submit" disabled={busy}>
                     Save curve point
                   </button>
                 </form>
-              )}
-            </section>
-          </div>
-        )}
-        {tab === "data" && (
-          <section className="data-tools">
-            <h3>Export / import</h3>
-            <p>
-              Import is an atomic replacement. Duplicate IDs are reported in
-              preview; commit explicitly replaces current records. Export first.
-            </p>
-            <button
-              disabled={busy}
-              onClick={() =>
-                void run(async () => {
-                  const data = await api("/export");
-                  const url = URL.createObjectURL(
-                    new Blob([JSON.stringify(data, null, 2)], {
-                      type: "application/json",
-                    }),
-                  );
-                  const a = document.createElement("a");
-                  a.href = url;
-                  a.download = "the-shift-export.json";
-                  a.click();
-                  setTimeout(() => URL.revokeObjectURL(url), 1000);
-                }, false)
-              }
-            >
-              Export JSON
-            </button>
-            <label>
-              Import JSON file
-              <input
-                type="file"
-                accept=".json,application/json"
-                onChange={async (e) => {
-                  const f = e.target.files?.[0];
-                  if (f) {
-                    setImportText(await f.text());
-                    setImportPreview(null);
-                  }
-                }}
-              />
-            </label>
-            <Field
-              label="Import JSON"
-              type="textarea"
-              value={importText}
-              onChange={(v) => {
-                setImportText(v);
-                setImportPreview(null);
-              }}
-            />
-            <button
-              disabled={busy}
-              onClick={() =>
-                void run(
-                  async () =>
-                    setImportPreview(
-                      await api(
-                        "/import/preview",
-                        "POST",
-                        JSON.parse(importText),
-                      ),
-                    ),
-                  false,
-                )
-              }
-            >
-              Dry-run preview
-            </button>
-            {importPreview !== null && (
-              <>
-                <pre>{JSON.stringify(importPreview, null, 2)}</pre>
-                <button
-                  disabled={busy}
-                  onClick={() => {
-                    if (confirm("Replace ALL current data with this import?"))
-                      void run(() =>
-                        api("/import/commit", "POST", {
-                          confirm: "REPLACE",
-                          data: JSON.parse(importText),
-                        }),
-                      );
-                  }}
-                >
-                  Commit replacement
-                </button>
-              </>
+              </section>
+            ) : (
+              <section className="editor">
+                <p>
+                  Select a title <Pencil /> to edit. Every published event
+                  coexists with a point on the curve; edit its historical values
+                  or each scenario’s values in the same form. Existing scaffold
+                  anchors are retained under Advanced anchors.
+                </p>
+              </section>
             )}
-            <h3>SQLite backups</h3>
-            <p>
-              Uses the SQLite backup API. Restore checks integrity and validates
-              data before replacing records.
-            </p>
-            <button
-              disabled={busy}
-              onClick={() =>
-                void run(async () => {
-                  const b = await api<{ name: string }>(
-                    "/admin/backup",
-                    "POST",
-                  );
-                  setBackup(b.name);
-                })
-              }
-            >
-              Create backup
-            </button>
-            <label>
-              Available backups
-              <select
-                value={backup}
-                onChange={(e) => setBackup(e.target.value)}
-              >
-                <option value="">Choose backup</option>
-                {backups.map((b) => (
-                  <option key={b}>{b}</option>
-                ))}
-              </select>
-            </label>
-            <button
-              disabled={busy || !backup}
-              onClick={() => {
-                if (
-                  confirm(
-                    "Restore this backup and replace ALL current timeline data?",
-                  )
-                )
-                  void run(() =>
-                    api("/admin/restore", "POST", {
-                      name: backup,
-                      confirm: "RESTORE",
-                    }),
-                  );
-              }}
-            >
-              Restore backup
-            </button>
-            <h3>Managed categories</h3>
-            <Field
-              label="New category name"
-              value={newCategory}
-              onChange={setNewCategory}
-            />
-            <button
-              disabled={busy || !newCategory.trim()}
-              onClick={() =>
-                void run(() =>
-                  api("/categories", "POST", {
-                    name: newCategory,
-                    parent_id: null,
-                  }),
-                )
-              }
-            >
-              Add category
-            </button>
-            <p>{categories.map((c) => c.name).join(" · ")}</p>
-          </section>
+          </div>
         )}
       </section>
     </div>
-  );
-}
-function PointPreview({ point, points }: { point: Point; points: Point[] }) {
-  const list = [
-    ...points.filter(
-      (p) =>
-        p.id !== point.id &&
-        (p.scenario_id === null || p.scenario_id === point.scenario_id),
-    ),
-    point,
-  ].sort((a, b) => a.point_date.localeCompare(b.point_date));
-  const start = Date.parse(MIN_DATE),
-    end = Date.parse(MAX_DATE);
-  const path = (k: "technology_index" | "human_effort_index") =>
-    list
-      .map(
-        (p, i) =>
-          `${i ? "L" : "M"}${10 + ((Date.parse(p.point_date) - start) / (end - start)) * 380},${110 - p[k]}`,
-      )
-      .join(" ");
-  return (
-    <svg
-      className="point-preview"
-      viewBox="0 0 400 120"
-      aria-label="Unsaved curve preview"
-    >
-      <path d={path("technology_index")} className="curve technology" />
-      <path d={path("human_effort_index")} className="curve human" />
-    </svg>
   );
 }
