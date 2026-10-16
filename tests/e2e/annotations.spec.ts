@@ -93,7 +93,8 @@ test("SQLite backup works through the real Vite proxy, without permitting hostil
   page,
   request,
 }) => {
-  await page.goto("http://127.0.0.1:5174");
+  const viteURL = `http://127.0.0.1:${process.env.SHIFT_E2E_VITE_PORT || "5174"}`;
+  await page.goto(viteURL);
   await expect(page.getByTestId("technology-path")).toBeVisible();
   await page.getByRole("button", { name: "Manage timeline" }).click();
   await page.getByRole("button", { name: "Data & backups" }).click();
@@ -107,10 +108,9 @@ test("SQLite backup works through the real Vite proxy, without permitting hostil
   expect(await page.getByLabel("Available backups").inputValue()).toMatch(
     /^backup-.*\.sqlite$/,
   );
-  const forbidden = await request.post(
-    "http://127.0.0.1:5174/api/v1/admin/backup",
-    { headers: { "X-Shift-Admin": "local", Origin: "https://evil.example" } },
-  );
+  const forbidden = await request.post(`${viteURL}/api/v1/admin/backup`, {
+    headers: { "X-Shift-Admin": "local", Origin: "https://evil.example" },
+  });
   expect(forbidden.status()).toBe(403);
   await page.screenshot({
     path: "docs/screenshots/annotations-backup-vite.png",
@@ -180,17 +180,19 @@ test("Details and scenario tabs retain unsaved values and save all scenario curv
     .selectOption("future_forecast");
   await page
     .getByLabel("Summary *", { exact: true })
-    .fill("One record with three independent scenario points.");
+    .fill("One record with four independent scenario points.");
   await expect(page.getByRole("tab")).toHaveText([
     "Details",
     "Baseline",
     "Accelerated",
     "Exponential",
+    "Age of AI",
   ]);
   for (const [name, date, technology, human] of [
     ["Baseline", "2038-04-07", "60", "70"],
     ["Accelerated", "2033-04-07", "80", "50"],
     ["Exponential", "2030-04-07", "95", "20"],
+    ["Age of AI", "2031-04-07", "85", "35"],
   ]) {
     await page.getByRole("tab", { name, exact: true }).click();
     await expect(page.getByLabel("Summary *", { exact: true })).toHaveCount(0);
@@ -222,6 +224,7 @@ test("Details and scenario tabs retain unsaved values and save all scenario curv
     ["baseline", "2038-04-07", [60, 70]],
     ["accelerated", "2033-04-07", [80, 50]],
     ["exponential", "2030-04-07", [95, 20]],
+    ["age-of-ai", "2031-04-07", [85, 35]],
   ] as const) {
     const data = await (
       await page.request.get("/api/v1/timeline?scenario=" + scenario)

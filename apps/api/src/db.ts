@@ -10,6 +10,7 @@ import {
   Scenario,
 } from "../../../packages/shared/src/model";
 import { validateEventCurves } from "../../../packages/shared/src/event-points";
+import { AGE_AI_AS_OF } from "../../../packages/shared/src/age-ai-data";
 export function openDatabase(dir = process.env.DATA_DIR || "data") {
   mkdirSync(dir, { recursive: true });
   const db = new Database(resolve(dir, "shift.sqlite"));
@@ -30,6 +31,10 @@ export function openDatabase(dir = process.env.DATA_DIR || "data") {
   if (!db.prepare("SELECT version FROM migrations WHERE version=4").get())
     db.transaction(() =>
       db.exec(readFileSync(resolve("database/migrations/004.sql"), "utf8")),
+    )();
+  if (!db.prepare("SELECT version FROM migrations WHERE version=5").get())
+    db.transaction(() =>
+      db.exec(readFileSync(resolve("database/migrations/005.sql"), "utf8")),
     )();
   return db;
 }
@@ -183,7 +188,10 @@ export function savePoint(db: DB, input: unknown, id?: string) {
     Point | undefined;
   if (
     old &&
-    ["1900-01-01", "2026-10-13", "2100-12-31"].includes(old.point_date) &&
+    (old.scenario_id === "age-of-ai"
+      ? [AGE_AI_AS_OF, "2100-12-31"]
+      : ["1900-01-01", "2026-10-13", "2100-12-31"]
+    ).includes(old.point_date) &&
     (old.point_date !== p.point_date || old.scenario_id !== p.scenario_id)
   )
     throw new Error("Essential boundary anchors cannot change dates or series");
@@ -198,16 +206,22 @@ export function savePoint(db: DB, input: unknown, id?: string) {
 export function exportData(db: DB) {
   return {
     schema_version: db
-      .prepare("SELECT name FROM sqlite_master WHERE name='event_curve_values'")
+      .prepare("SELECT id FROM scenarios WHERE id='age-of-ai'")
       .get()
-      ? 3
-      : (
-            db.prepare("SELECT COUNT(*) AS n FROM scenarios").get() as {
-              n: number;
-            }
-          ).n === 3
-        ? 2
-        : 1,
+      ? 4
+      : db
+            .prepare(
+              "SELECT name FROM sqlite_master WHERE name='event_curve_values'",
+            )
+            .get()
+        ? 3
+        : (
+              db.prepare("SELECT COUNT(*) AS n FROM scenarios").get() as {
+                n: number;
+              }
+            ).n === 3
+          ? 2
+          : 1,
     scenarios: db.prepare("SELECT * FROM scenarios").all(),
     categories: db.prepare("SELECT * FROM categories").all(),
     events: getEvents(db),

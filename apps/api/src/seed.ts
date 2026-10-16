@@ -8,6 +8,8 @@ import {
 } from "../../../packages/shared/src/model";
 import { EXPONENTIAL_DATES } from "../../../packages/shared/src/exponential";
 import { seedEnhancements } from "./enhancements";
+import { seedAgeAI } from "./age-ai-seed";
+import { seedAgeAICheckpoints } from "./age-ai-checkpoints";
 function seedInitial(db: DB) {
   if (db.prepare("SELECT id FROM seed_log WHERE id=?").get("initial-v1"))
     return;
@@ -179,7 +181,10 @@ function seedInitial(db: DB) {
 }
 export function seed(db: DB) {
   seedInitial(db);
+  // Register the fourth scenario before older enhancement seeds save forecasts.
+  seedAgeAI(db);
   seedEnhancements(db);
+  seedAgeAICheckpoints(db);
 }
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const db = openDatabase();

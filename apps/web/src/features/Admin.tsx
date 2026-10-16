@@ -11,6 +11,7 @@ import {
   pointSchema,
 } from "../../../../packages/shared/src/model";
 import { api, ApiError } from "../lib/api";
+import { AGE_AI_AS_OF } from "../../../../packages/shared/src/age-ai-data";
 import { Field } from "../components/Field";
 import { EventEditor, CurvePreview, Pencil } from "./EventEditor";
 import { DataTools } from "./DataTools";
@@ -231,7 +232,7 @@ export function Admin({ scenario, categories, onClose, onRefresh }: Props) {
             <h2>Manage timeline</h2>
             <p>
               Events & their curve points · local SQLite · historical cutoff{" "}
-              {CUTOFF}
+              {scenario === "age-of-ai" ? AGE_AI_AS_OF : CUTOFF}
             </p>
           </div>
           <button onClick={close} aria-label="Close management">

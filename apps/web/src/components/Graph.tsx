@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { scaleLinear } from "d3-scale";
 import { line, curveLinear } from "d3-shape";
 import {
-  CUTOFF,
   END,
   START,
   Timeline,
@@ -37,8 +36,12 @@ export function Graph({
     right = 24,
     top = 72,
     bottom = h - (w < 600 ? 150 : 115);
+  const isAgeAI = data.scenario === "age-of-ai";
+  const start = START;
+  const cutoff = time(data.cutoff);
+  const years = [1900, 1925, 1950, 1975, 2000, 2026, 2050, 2075, 2100];
   const x = scaleLinear()
-      .domain([START, END])
+      .domain([start, END])
       .range([left, w - right]),
     y = scaleLinear().domain([0, 100]).range([bottom, top]);
   const pts = [...data.points].sort((a, b) =>
@@ -69,7 +72,11 @@ export function Graph({
       width={w}
       height={h}
       viewBox={`0 0 ${w} ${h}`}
-      aria-label="Conceptual technology and human effort indices from 1900 to 2100"
+      aria-label={
+        isAgeAI
+          ? "Age of AI: full history from 1900, forecast based only on 2023–2026 AI evidence"
+          : "Conceptual technology and human effort indices from 1900 to 2100"
+      }
       role="img"
     >
       <defs>
@@ -83,9 +90,9 @@ export function Graph({
         </clipPath>
       </defs>
       <rect
-        x={x(time(CUTOFF))}
+        x={x(cutoff)}
         y={top}
-        width={w - right - x(time(CUTOFF))}
+        width={w - right - x(cutoff)}
         height={bottom - top}
         fill="var(--forecast)"
       />
@@ -97,7 +104,7 @@ export function Graph({
           </text>
         </g>
       ))}
-      {[1900, 1925, 1950, 1975, 2000, 2026, 2050, 2075, 2100]
+      {years
         .filter((v, i) => w > 600 || i % 2 === 0)
         .map((v) => (
           <g key={v}>
@@ -129,17 +136,17 @@ export function Graph({
       </text>
       <line
         className="boundary"
-        x1={x(time(CUTOFF))}
-        x2={x(time(CUTOFF))}
+        x1={x(cutoff)}
+        x2={x(cutoff)}
         y1={top}
         y2={bottom}
       />
       <text
         className="forecast-label"
-        x={Math.min(w - 180, x(time(CUTOFF)) + 10)}
+        x={Math.min(w - 180, x(cutoff) + 10)}
         y={bottom - 12}
       >
-        ILLUSTRATIVE FORECASTS →
+        {isAgeAI ? "CONDITIONAL FORECAST →" : "ILLUSTRATIVE FORECASTS →"}
       </text>
       <g clipPath="url(#reached)">
         <path
@@ -165,48 +172,52 @@ export function Graph({
         y1={top}
         y2={bottom}
       />
-      {[...groups].map(([d, es]) => {
-        const xx = x(time(d)),
-          yy = y(indices(pts, time(d))[0]);
-        return (
-          <g
-            className="marker"
-            key={d}
-            role="button"
-            tabIndex={0}
-            aria-label={`${es.length > 1 ? es.length + " events: " : ""}${es.map((e) => e.title).join("; ")}`}
-            onClick={() => {
-              seek(time(d));
-              choose(es[0]);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
+      {[...groups]
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([d, es]) => {
+          const xx = x(time(d)),
+            yy = y(indices(pts, time(d))[0]);
+          return (
+            <g
+              className="marker"
+              key={d}
+              role="button"
+              tabIndex={0}
+              aria-label={`${es.length > 1 ? es.length + " events: " : ""}${es.map((e) => e.title).join("; ")}`}
+              onClick={() => {
                 seek(time(d));
                 choose(es[0]);
-              }
-            }}
-          >
-            <title>{es.map((e) => e.title).join(" / ")}</title>
-            <circle cx={xx} cy={yy} r="14" fill="transparent" />
-            <circle
-              cx={xx}
-              cy={yy}
-              r={es.length > 1 ? 6 : 4}
-              fill={
-                es[0].kind === "future_forecast" ? "var(--orange)" : "var(--fg)"
-              }
-              stroke="var(--bg)"
-              strokeWidth="2"
-            />
-            {es.length > 1 && (
-              <text className="axis" x={xx} y={yy - 12} textAnchor="middle">
-                {es.length}
-              </text>
-            )}
-          </g>
-        );
-      })}
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  seek(time(d));
+                  choose(es[0]);
+                }
+              }}
+            >
+              <title>{es.map((e) => e.title).join(" / ")}</title>
+              <circle cx={xx} cy={yy} r="14" fill="transparent" />
+              <circle
+                cx={xx}
+                cy={yy}
+                r={es.length > 1 ? 6 : 4}
+                fill={
+                  es[0].kind === "future_forecast"
+                    ? "var(--orange)"
+                    : "var(--fg)"
+                }
+                stroke="var(--bg)"
+                strokeWidth="2"
+              />
+              {es.length > 1 && (
+                <text className="axis" x={xx} y={yy - 12} textAnchor="middle">
+                  {es.length}
+                </text>
+              )}
+            </g>
+          );
+        })}
       {cross !== null && active >= cross && (
         <g>
           <circle

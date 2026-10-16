@@ -21,7 +21,7 @@ afterEach(async () => {
   db.close();
   rmSync(dir, { recursive: true, force: true });
 });
-it("all three scenarios preserve history and calculate distinct future curves", async () => {
+it("all four scenarios preserve history and calculate distinct future curves", async () => {
   const data = await Promise.all(
     SCENARIOS.map(async (s) =>
       (await app.inject("/api/v1/timeline?scenario=" + s)).json(),
@@ -75,15 +75,22 @@ it("military toggle filters both past and future without changing curves or dele
 });
 it("imports legacy two-scenario JSON safely with no invented third-scenario event dates", async () => {
   const data = (await app.inject("/api/v1/export")).json();
-  expect(data.schema_version).toBe(3);
+  expect(data.schema_version).toBe(4);
   data.schema_version = 1;
-  data.scenarios = data.scenarios.filter((s: any) => s.id !== "exponential");
+  data.scenarios = data.scenarios.filter((s: any) =>
+    ["baseline", "accelerated"].includes(s.id),
+  );
   data.curve_points = data.curve_points.filter(
-    (p: any) => p.scenario_id !== "exponential",
+    (p: any) =>
+      p.scenario_id === null ||
+      ["baseline", "accelerated"].includes(p.scenario_id),
   );
   for (const e of data.events) {
     delete e.is_military;
-    if (e.forecasts) delete e.forecasts.exponential;
+    if (e.forecasts) {
+      delete e.forecasts.exponential;
+      delete e.forecasts["age-of-ai"];
+    }
   }
   const result = await app.inject({
     method: "POST",
@@ -93,7 +100,7 @@ it("imports legacy two-scenario JSON safely with no invented third-scenario even
   });
   expect(result.statusCode, result.body).toBe(200);
   const updated = (await app.inject("/api/v1/export")).json();
-  expect(updated.scenarios).toHaveLength(3);
+  expect(updated.scenarios).toHaveLength(4);
   expect(
     updated.events.find((e: any) => e.id === "forecast-0").forecasts.exponential
       .estimated_start,

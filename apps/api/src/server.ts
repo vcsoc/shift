@@ -21,6 +21,9 @@ import {
   SCENARIOS,
 } from "../../../packages/shared/src/model";
 import { upgradeImport } from "./imports";
+import { seedAgeAI } from "./age-ai-seed";
+import { seedAgeAICheckpoints } from "./age-ai-checkpoints";
+import { AGE_AI_AS_OF, ageAIEvent } from "../../../packages/shared/src/age-ai";
 import {
   timelinePoints,
   validateEventCurves,
@@ -39,7 +42,7 @@ const categorySchema = z.object({
   parent_id: z.string().nullable().default(null),
 });
 const bundle = z.object({
-  schema_version: z.literal(3),
+  schema_version: z.literal(4),
   scenarios: z
     .array(
       scenarioEdit.extend({
@@ -47,7 +50,7 @@ const bundle = z.object({
         is_default: z.number().optional(),
       }),
     )
-    .length(3),
+    .length(SCENARIOS.length),
   categories: z.array(categorySchema.extend({ id: z.string().min(1) })),
   events: z.array(
     eventSchema.safeExtend({
@@ -124,12 +127,13 @@ export function createServer(db: DB, dataDir = process.env.DATA_DIR || "data") {
     if (cache.has(key)) return cache.get(key);
     const result = {
       scenario: s,
-      cutoff: CUTOFF,
+      cutoff: s === "age-of-ai" ? AGE_AI_AS_OF : CUTOFF,
       events: getEvents(db).filter(
         (e) =>
           e.status === "published" &&
           !e.deleted_at &&
-          (military || !e.is_military),
+          (military || !e.is_military) &&
+          (s !== "age-of-ai" || ageAIEvent(e)),
       ),
       points: timelinePoints(points(db), getEvents(db), s),
       categories: db.prepare("SELECT * FROM categories").all(),
@@ -256,7 +260,12 @@ export function createServer(db: DB, dataDir = process.env.DATA_DIR || "data") {
     async (req) => {
       need("curve_points", req.params.id);
       const p = points(db).find((p) => p.id === req.params.id)!;
-      if (["1900-01-01", CUTOFF, "2100-12-31"].includes(p.point_date))
+      if (
+        (p.scenario_id === "age-of-ai"
+          ? [AGE_AI_AS_OF, "2100-12-31"]
+          : ["1900-01-01", CUTOFF, "2100-12-31"]
+        ).includes(p.point_date)
+      )
         throw new Error(
           "Essential boundary anchor: edit its values instead of deleting",
         );
@@ -322,6 +331,7 @@ export function createServer(db: DB, dataDir = process.env.DATA_DIR || "data") {
     for (const [series, date] of [
       [null, "1900-01-01"],
       [null, CUTOFF],
+      ["age-of-ai", AGE_AI_AS_OF],
       ...SCENARIOS.map((s) => [s, "2100-12-31"]),
     ])
       if (
@@ -474,6 +484,8 @@ export function createServer(db: DB, dataDir = process.env.DATA_DIR || "data") {
               `INSERT INTO ${table} SELECT * FROM restore_snapshot.${table}`,
             ).run();
           }
+          seedAgeAI(db);
+          seedAgeAICheckpoints(db);
           audit(db, "database", "all", "restore", { backup: b.name });
         })();
       } finally {

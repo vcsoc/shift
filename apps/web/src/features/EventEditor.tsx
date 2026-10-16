@@ -247,6 +247,7 @@ export function EventEditor({
                               baseline: emptyForecast(),
                               accelerated: emptyForecast(),
                               exponential: emptyForecast(),
+                              "age-of-ai": emptyForecast(),
                             },
                           }
                         : {

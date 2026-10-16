@@ -172,7 +172,7 @@ it("restores migration-3 backups without event-curve rows as automatic points", 
 it("curve values round-trip through export/import, backup/restore and database reopen", async () => {
   const id = (await request("POST", "/api/v1/events", fixture)).json().id;
   const exported = (await request("GET", "/api/v1/export")).json();
-  expect(exported.schema_version).toBe(3);
+  expect(exported.schema_version).toBe(4);
   expect(exported.events.find((e: any) => e.id === id).curve).toEqual(curve);
   expect(
     (

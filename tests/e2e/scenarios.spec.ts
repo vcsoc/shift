@@ -20,10 +20,11 @@ test("Exponential follows Accelerated, persists in URL, preserves date and expos
   await expect(page.getByTestId("technology-path")).toBeVisible();
   await seek(page, "2045-01-01");
   const prior = await page.getByTestId("technology-path").getAttribute("d");
-  await expect(page.locator(".segmented button")).toHaveText([
+  await expect(page.locator(".forecast-label-text")).toHaveText([
     "Baseline",
     "Accelerated",
     "Exponential",
+    "Age of AI",
   ]);
   await page.getByRole("button", { name: "Exponential", exact: true }).click();
   await expect(page).toHaveURL(/scenario=exponential/);
@@ -98,6 +99,7 @@ test("Exponential and military controls fit a mobile viewport", async ({
     "Baseline",
     "Accelerated",
     "Exponential",
+    "Age of AI",
     "Include military events",
     "Toggle theme",
     "Manage timeline",

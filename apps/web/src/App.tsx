@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Graph } from "./components/Graph";
+import { ForecastScenarios } from "./components/ForecastScenarios";
+import { AGE_AI_AS_OF } from "../../../packages/shared/src/age-ai-data";
 import { Admin } from "./features/Admin";
 import { fetchTimeline } from "./lib/api";
 import {
@@ -12,7 +14,6 @@ import {
   eventDate,
   dateLabel,
   scenarioSchema,
-  SCENARIOS,
   SCENARIO_LABELS,
 } from "../../../packages/shared/src/model";
 export function App() {
@@ -123,9 +124,13 @@ export function App() {
     id = requestAnimationFrame(frame);
     return () => cancelAnimationFrame(id);
   }, [playing, speed, seek, admin]);
-  const visibleData = data
-    ? { ...data, events: data.events.filter((e) => military || !e.is_military) }
-    : null;
+  const visibleData =
+    data && data.scenario === scenario
+      ? {
+          ...data,
+          events: data.events.filter((e) => military || !e.is_military),
+        }
+      : null;
   const dated = (visibleData?.events || [])
     .map((e) => ({ e, d: eventDate(e, scenario) }))
     .filter((v): v is { e: Event; d: string } => v.d !== null)
@@ -207,18 +212,34 @@ export function App() {
             THE <span>SHIFT</span>
             <i>↗</i>
           </h1>
-          <p>HUMANITY × TECHNOLOGY · 1900—2100</p>
+          <p>
+            {scenario === "age-of-ai"
+              ? "AGE OF AI · 1900—2100 · FIT: 2023—2026"
+              : "HUMANITY × TECHNOLOGY · 1900—2100"}
+          </p>
           <div className="legend">
-            <span className="orange">Technology integration</span>
-            <span className="cyan">Human operational effort</span>
+            <span className="orange">
+              {scenario === "age-of-ai"
+                ? "Technology · recent AI forecast"
+                : "Technology integration"}
+            </span>
+            <span className="cyan">
+              {scenario === "age-of-ai"
+                ? "Human effort · assumed"
+                : "Human operational effort"}
+            </span>
           </div>
         </header>
-        <section className="event-overlay" aria-label="Current milestone">
+        <section
+          className={`event-overlay${scenario === "age-of-ai" ? " age-ai-overlay" : ""}`}
+          aria-label="Current milestone"
+        >
           {event ? (
             <div className="event-detail">
               <div className="eyebrow">
                 {event.kind === "future_forecast"
-                  ? "ILLUSTRATIVE FORECAST · " + scenario.toUpperCase()
+                  ? "ILLUSTRATIVE FORECAST · " +
+                    SCENARIO_LABELS[scenario].toUpperCase()
                   : event.kind.replaceAll("_", " ").toUpperCase()}{" "}
                 · {dateLabel(event, scenario)}
               </div>
@@ -274,8 +295,13 @@ export function App() {
             </div>
           ) : (
             <p className="intro">
-              A century of invention.
-              <br />A century of possibilities.
+              {scenario === "age-of-ai"
+                ? "Recent AI progress."
+                : "A century of invention."}
+              <br />
+              {scenario === "age-of-ai"
+                ? "A conditional future."
+                : "A century of possibilities."}
               <br />
               <span>Scroll to move through time ↓</span>
             </p>
@@ -287,6 +313,15 @@ export function App() {
         <aside className="disclaimer">
           Two illustrative indices, not empirical measurements.
           <br />A crossing does not mean humans are unnecessary.
+          {scenario === "age-of-ai" && (
+            <span className="scenario-warning">
+              Full history shown; forecast fit uses only 2023–{AGE_AI_AS_OF}.
+              Future effort decline is assumed, not observed. Human
+              responsibility remains.
+              <br />
+              Hover or focus Age of AI for methodology.
+            </span>
+          )}
           {scenario === "exponential" && (
             <span className="scenario-warning">
               Exponential: speculative continuation of a task-horizon trend, not
@@ -304,7 +339,7 @@ export function App() {
             </span>
           )}
         </aside>
-        {loading && !data && (
+        {loading && !visibleData && (
           <div className="state" role="status">
             Loading timeline…
           </div>
@@ -371,17 +406,7 @@ export function App() {
               ))}
             </select>
           </label>
-          <div className="segmented" aria-label="Forecast scenario">
-            {SCENARIOS.map((s) => (
-              <button
-                key={s}
-                aria-pressed={scenario === s}
-                onClick={() => changeScenario(s)}
-              >
-                {SCENARIO_LABELS[s]}
-              </button>
-            ))}
-          </div>
+          <ForecastScenarios scenario={scenario} onChange={changeScenario} />
           <button
             className="military-toggle"
             aria-label="Include military events"

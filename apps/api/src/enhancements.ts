@@ -284,7 +284,7 @@ export function seedEnhancements(db: DB) {
     for (const item of NEW_FORECASTS) {
       if (db.prepare("SELECT id FROM events WHERE id=?").get(item.id)) continue;
       const forecasts = Object.fromEntries(
-        SCENARIOS.map((s, i) => [
+        SCENARIOS.filter((s) => s !== "age-of-ai").map((s, i) => [
           s,
           {
             estimated_start: item.dates[i],

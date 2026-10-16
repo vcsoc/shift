@@ -1,12 +1,19 @@
 import { z } from "zod";
+import { AGE_AI_AS_OF } from "./age-ai-data";
 export const CUTOFF = "2026-10-13";
 export const MIN_DATE = "1900-01-01";
 export const MAX_DATE = "2100-12-31";
-export const SCENARIOS = ["baseline", "accelerated", "exponential"] as const;
+export const SCENARIOS = [
+  "baseline",
+  "accelerated",
+  "exponential",
+  "age-of-ai",
+] as const;
 export const SCENARIO_LABELS = {
   baseline: "Baseline",
   accelerated: "Accelerated",
   exponential: "Exponential",
+  "age-of-ai": "Age of AI",
 };
 export const scenarioSchema = z.enum(SCENARIOS);
 export type Scenario = z.infer<typeof scenarioSchema>;
@@ -63,6 +70,16 @@ export const forecastSchema = z
         message: "Range end must follow start",
       });
   });
+export const AGE_AI_NOT_FORECAST = {
+  estimated_start: null,
+  estimated_end: null,
+  description:
+    "Not forecast: capability trends do not establish sector adoption or an end to human responsibility.",
+  rationale: "No event date inferred from the Age of AI capability fit.",
+  assumptions:
+    "Human accountability, governance, auditing and escalation remain required.",
+  confidence: "low" as const,
+};
 export const eventSchema = z
   .object({
     id: z.string().min(1).optional(),
@@ -88,6 +105,7 @@ export const eventSchema = z
       .object({
         baseline: forecastSchema,
         accelerated: forecastSchema,
+        "age-of-ai": forecastSchema.default(AGE_AI_NOT_FORECAST),
         exponential: forecastSchema.default({
           estimated_start: null,
           estimated_end: null,
@@ -109,6 +127,13 @@ export const eventSchema = z
       .default([]),
   })
   .superRefine((v, c) => {
+    const ageStart = v.forecasts?.["age-of-ai"].estimated_start;
+    if (ageStart && ageStart <= AGE_AI_AS_OF)
+      c.addIssue({
+        code: "custom",
+        path: ["forecasts", "age-of-ai", "estimated_start"],
+        message: "Age of AI forecast must follow its as-of date",
+      });
     if (v.kind === "future_forecast") {
       if (v.curve)
         c.addIssue({
@@ -126,7 +151,7 @@ export const eventSchema = z
         c.addIssue({
           code: "custom",
           path: ["forecasts"],
-          message: "All three scenario estimates required (or not forecast)",
+          message: "Scenario estimates required (or not forecast)",
         });
     } else {
       if (!v.historical_date_start || v.historical_date_start > CUTOFF)
@@ -196,14 +221,16 @@ export const pointSchema = z
   })
   .superRefine((v, c) => {
     if (
-      (v.scenario_id === null && v.point_date > CUTOFF) ||
-      (v.scenario_id !== null && v.point_date <= CUTOFF)
+      v.scenario_id === "age-of-ai"
+        ? v.point_date < AGE_AI_AS_OF
+        : (v.scenario_id === null && v.point_date > CUTOFF) ||
+          (v.scenario_id !== null && v.point_date <= CUTOFF)
     )
       c.addIssue({
         code: "custom",
         path: ["point_date"],
         message:
-          "Shared points must be historical; scenario points must follow cutoff",
+          "Shared points must be historical; scenario points must follow cutoff (Age of AI starts at its as-of date)",
       });
   });
 export type Point = z.infer<typeof pointSchema> & { id: string };
@@ -220,7 +247,7 @@ export const START = time(MIN_DATE),
   END = time(MAX_DATE);
 export function eventDate(e: Event, s: Scenario) {
   return e.kind === "future_forecast"
-    ? (e.forecasts?.[s].estimated_start ?? null)
+    ? (e.forecasts?.[s]?.estimated_start ?? null)
     : e.historical_date_start;
 }
 export function indices(points: Point[], t: number): [number, number] {

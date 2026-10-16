@@ -10,8 +10,15 @@ import {
   RESEARCH_HISTORY,
   NEW_FORECASTS,
 } from "../../apps/api/src/enhancements";
+import { AGE_AI_OBSERVATIONS } from "../../packages/shared/src/age-ai-data";
+import { AGE_AI_CHECKPOINTS } from "../../apps/api/src/age-ai-checkpoints";
 const TOTAL =
-  history.length + 10 + RESEARCH_HISTORY.length + NEW_FORECASTS.length;
+  history.length +
+  10 +
+  RESEARCH_HISTORY.length +
+  NEW_FORECASTS.length +
+  AGE_AI_OBSERVATIONS.length +
+  AGE_AI_CHECKPOINTS.length;
 const headers = { host: "127.0.0.1", "x-shift-admin": "local" };
 let dir: string,
   db: ReturnType<typeof openDatabase>,

@@ -69,7 +69,7 @@ test("scroll, reverse scroll, seek and synchronized next scroll", async ({
     .poll(async () =>
       Number(await page.getByTestId("current-year").innerText()),
     )
-    .toBeGreaterThanOrEqual(2050);
+    .toBeGreaterThan(2050);
   await seek(page, "1920-01-01");
   await expect(page.getByTestId("current-year")).toHaveText("1920");
 });

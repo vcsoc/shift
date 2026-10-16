@@ -1,9 +1,18 @@
-import { Event, Point, Scenario, eventDate, indices, time } from "./model";
+import {
+  Event,
+  Point,
+  Scenario,
+  SCENARIOS,
+  eventDate,
+  indices,
+  time,
+} from "./model";
+import { AGE_AI_AS_OF, ageAIEvent } from "./age-ai";
 // Original anchors remain as a non-destructive interpolation scaffold. Every
 // published milestone also has a point; an explicit event value overrides the
 // scaffold at that date. Coincident events must agree on explicit coordinates.
 export function eventCurve(e: Event, s: Scenario) {
-  return e.kind === "future_forecast" ? e.forecasts?.[s].curve : e.curve;
+  return e.kind === "future_forecast" ? e.forecasts?.[s]?.curve : e.curve;
 }
 export function timelinePoints(
   anchors: Point[],
@@ -12,11 +21,20 @@ export function timelinePoints(
 ): Point[] {
   const map = new Map(
     anchors
-      .filter((p) => p.scenario_id === null || p.scenario_id === scenario)
+      .filter(
+        (p) =>
+          p.scenario_id === null ||
+          (p.scenario_id === scenario &&
+            (scenario !== "age-of-ai" || p.point_date >= AGE_AI_AS_OF)),
+      )
       .map((p) => [p.point_date, { ...p }]),
   );
   const visible = events.filter(
-    (e) => e.status === "published" && !e.deleted_at && eventDate(e, scenario),
+    (e) =>
+      e.status === "published" &&
+      !e.deleted_at &&
+      eventDate(e, scenario) &&
+      (scenario !== "age-of-ai" || ageAIEvent(e)),
   );
   for (const e of visible) {
     const date = eventDate(e, scenario)!,
@@ -49,7 +67,7 @@ export function timelinePoints(
   );
 }
 export function validateEventCurves(events: Event[]) {
-  for (const scenario of ["baseline", "accelerated", "exponential"] as const) {
+  for (const scenario of SCENARIOS) {
     const values = new Map<
       string,
       { event: Event; technology_index: number; human_effort_index: number }

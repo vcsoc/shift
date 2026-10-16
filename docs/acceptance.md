@@ -1,5 +1,21 @@
 # Acceptance evidence
 
+## Age of AI update — 16 October 2026
+
+Executed on Node 22.22.2 with isolated SQLite databases and Chromium desktop/mobile emulation:
+
+- `npm test`: **34/34 passed** across seven unit/component/integration files, including the ordering-sensitive upgrade from an existing two-scenario installation.
+- `SHIFT_E2E_VITE_PORT=5197 npm run test:e2e`: **26/26 passed**, including the production build, full-history Age of AI view, five clickable sourced projection checkpoints, all four scenario methodology tooltips (hover/focus/tap/Escape), four-scenario editing, older JSON/SQLite compatibility, and the existing regressions. Port 5174 was occupied by another application; the proxy test used 5197 without stopping that application.
+- TypeScript / Vite production build passed as part of the browser-suite launch. Existing Zod comment-annotation warnings remain harmless.
+- `npm run format:check` and `git diff --check`: passed.
+- Development smoke: `/api/v1/timeline?scenario=age-of-ai` returns full history, its own 16 October forecast origin, and five explanation checkpoints.
+
+The first browser attempt required installing the matching Chromium binary. Tests then exposed overlap between recent historical markers, forecast checkpoints and the description panel; chronological marker painting and a narrower Age of AI narrative panel keep the checkpoint targets usable. Scenario switching no longer pairs a newly selected label with stale chart data. An existing wheel test now waits for an actual year advance before issuing the next seek, rather than accepting its already-true pre-scroll condition.
+
+The forecast rate is fitted only to the frozen 2023–2026 METR sample. Human effort reduction and adoption mappings remain explicit **assumptions**, not newly measured declines in work or responsibility. Historical geometry is identical across all four scenarios. See [methodology and limitations](age-of-ai.md), [desktop projection](screenshots/age-of-ai.png), and [mobile methodology tooltip](screenshots/age-of-ai-mobile.png). Current testing does not certify physical-device or screen-reader behaviour or a validated social forecast.
+
+## Earlier acceptance record
+
 Executed locally on 14 October 2026, Node 26.7.0, Chromium via Playwright, with isolated real SQLite databases. This report distinguishes implemented/tested functionality from full specification compliance.
 
 ## Executed results
